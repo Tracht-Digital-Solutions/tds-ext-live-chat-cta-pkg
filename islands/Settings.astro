@@ -1,0 +1,11 @@
+---
+// Live-Chat settings section — the per-frontend/per-feature activation matrix +
+// widget branding, persisted to the core settings store (/admin/settings/live-chat-cta).
+// Rendered by the base Einstellungen host via virtual:panel-settings.
+import LiveChatSettings from "./LiveChatSettings.tsx";
+---
+
+<div class="settings-section settings-section--live-chat">
+  <h3>Live-Chat</h3>
+  <LiveChatSettings client:load />
+</div>

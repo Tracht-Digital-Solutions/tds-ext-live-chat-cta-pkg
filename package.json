@@ -1,0 +1,53 @@
+{
+  "name": "@tracht-digital-solutions/tds-ext-live-chat-cta",
+  "version": "0.1.0",
+  "description": "Live-Chat-CTA extension: a floating bottom-right support widget (live chat + FAQ + docs + contact form), per-frontend/per-feature activatable from the admin Einstellungen. Ships the backend Module + admin management surface; the visitor bubble island lives in tds-shared-pkg.",
+  "license": "UNLICENSED",
+  "private": false,
+  "type": "module",
+  "files": [
+    "dist",
+    "pages",
+    "widgets",
+    "islands",
+    "php",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./pages/*": "./pages/*",
+    "./widgets/*": "./widgets/*",
+    "./islands/*": "./islands/*"
+  },
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@tracht-digital-solutions/tds-frontend-contract": "^1.0.0"
+  },
+  "peerDependencies": {
+    "astro": ">=6",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "rimraf": "^6.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tracht-Digital-Solutions/tds-ext-live-chat-cta-pkg.git"
+  }
+}

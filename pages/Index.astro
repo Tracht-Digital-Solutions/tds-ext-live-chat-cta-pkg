@@ -1,0 +1,13 @@
+---
+// Live-Chat admin page, injected into the host build via the manifest's route
+// slot. Content-only fragment — the host Layout (head/CSS/nav/auth-gate) wraps it.
+import LiveChatManager from "../islands/LiveChatManager.tsx";
+---
+
+<section class="page page--live-chat">
+  <h1>Live-Chat</h1>
+  <p class="page__lead">
+    Chats beantworten, FAQ und Dokumentation für das Support-Widget pflegen.
+  </p>
+  <LiveChatManager client:load />
+</section>

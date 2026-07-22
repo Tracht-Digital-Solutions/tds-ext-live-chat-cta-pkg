@@ -1,0 +1,11 @@
+---
+// Live-Chat dashboard widget shell. Renders the card chrome + a hydrated island
+// that fetches /live-chat-cta/summary. The Dashboard host renders this via
+// virtual:panel-widgets.
+import WidgetBody from "../islands/WidgetBody.tsx";
+---
+
+<article class="widget widget--live-chat">
+  <h3>Offene Chats</h3>
+  <WidgetBody client:load />
+</article>
