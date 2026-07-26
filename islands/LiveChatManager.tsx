@@ -90,7 +90,7 @@ function ChatsTab() {
                   <span className="chats__meta">
                     {s.frontend ?? "–"} · {s.message_count} · {new Date(s.last_activity_at).toLocaleString("de-DE")}
                   </span>
-                  {s.status === "open" ? <span className="badge badge--open">offen</span> : null}
+                  {s.status === "open" ? <span className="chip chip--info">offen</span> : null}
                 </button>
               </li>
             ))}
@@ -166,12 +166,22 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
   return (
     <div className="thread">
       <div className="thread__head">
-        <span className={`badge badge--${status}`}>{status === "open" ? "offen" : "geschlossen"}</span>
+        <span className={`chip ${status === "open" ? "chip--info" : "chip--neutral"}`}>
+          {status === "open" ? "offen" : "geschlossen"}
+        </span>
         <button type="button" onClick={toggleStatus}>{status === "open" ? "Schließen" : "Wieder öffnen"}</button>
       </div>
-      <div className="thread__messages">
+      {/* Shared thread primitive. Sides mapped EXPLICITLY — `msg msg--${author}`
+          matched no rule anywhere, so the bubbles rendered unstyled. This is the
+          AGENT-side view (the admin panel), so the agent is `--own`. */}
+      <div className="tds-thread">
         {messages.map((m) => (
-          <div key={m.id} className={`msg msg--${m.author}`}>
+          <div
+            key={m.id}
+            className={`tds-thread__item ${
+              m.author === "agent" ? "tds-thread__item--own" : "tds-thread__item--other"
+            }`}
+          >
             <p>{m.body}</p>
             <time>{new Date(m.created_at).toLocaleTimeString("de-DE")}</time>
           </div>
