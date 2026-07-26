@@ -280,7 +280,7 @@ function FaqTab() {
             <span>Veröffentlicht</span>
           </label>
         </div>
-        {status ? <p className="status-pill status-pill--info">{status}</p> : null}
+        {status ? <p className="tds-alert" role="status">{status}</p> : null}
         <div className="kb__actions">
           <button type="submit">Speichern</button>
           {typeof draft.id === "number" ? <button type="button" onClick={() => setDraft({ ...emptyFaq })}>Abbrechen</button> : null}
@@ -295,7 +295,7 @@ function FaqTab() {
             </div>
             <div className="kb__row-actions">
               <button type="button" onClick={() => setDraft({ ...r, category: r.category ?? "" })}>Bearbeiten</button>
-              <button type="button" className="danger" onClick={() => remove(r.id)}>Löschen</button>
+              <button type="button" className="btn btn-danger" onClick={() => remove(r.id)}>Löschen</button>
             </div>
           </li>
         ))}
@@ -390,7 +390,7 @@ function DocsTab() {
             <span>Veröffentlicht</span>
           </label>
         </div>
-        {status ? <p className="status-pill status-pill--info">{status}</p> : null}
+        {status ? <p className="tds-alert" role="status">{status}</p> : null}
         <div className="kb__actions">
           <button type="submit">Speichern</button>
           {typeof draft.id === "number" ? <button type="button" onClick={() => setDraft({ ...emptyDoc })}>Abbrechen</button> : null}
@@ -405,7 +405,7 @@ function DocsTab() {
             </div>
             <div className="kb__row-actions">
               <button type="button" onClick={() => setDraft({ ...r })}>Bearbeiten</button>
-              <button type="button" className="danger" onClick={() => remove(r.id)}>Löschen</button>
+              <button type="button" className="btn btn-danger" onClick={() => remove(r.id)}>Löschen</button>
             </div>
           </li>
         ))}
