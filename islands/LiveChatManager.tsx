@@ -296,9 +296,9 @@ function FaqTab() {
           {typeof draft.id === "number" ? <button type="button" onClick={() => setDraft({ ...emptyFaq })}>Abbrechen</button> : null}
         </div>
       </form>
-      <ul className="kb__list">
+      <ul className="tds-list">
         {rows.map((r) => (
-          <li key={r.id}>
+          <li key={r.id} className="tds-list__row">
             <div>
               <strong>{r.question}</strong>
               <span className="kb__meta">{r.lang}{r.category ? ` · ${r.category}` : ""}{r.is_published ? "" : " · Entwurf"}</span>
@@ -406,9 +406,9 @@ function DocsTab() {
           {typeof draft.id === "number" ? <button type="button" onClick={() => setDraft({ ...emptyDoc })}>Abbrechen</button> : null}
         </div>
       </form>
-      <ul className="kb__list">
+      <ul className="tds-list">
         {rows.map((r) => (
-          <li key={r.id}>
+          <li key={r.id} className="tds-list__row">
             <div>
               <strong>{r.title}</strong>
               <span className="kb__meta">{r.lang} · {r.slug}{r.is_published ? "" : " · Entwurf"}</span>
