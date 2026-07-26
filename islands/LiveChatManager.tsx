@@ -18,7 +18,7 @@ export default function LiveChatManager() {
   const [tab, setTab] = useState<Tab>("chats");
   return (
     <div className="live-chat-manager">
-      <nav className="live-chat-manager__tabs" role="tablist">
+      <nav className="tds-row" role="tablist">
         <TabButton active={tab === "chats"} onClick={() => setTab("chats")}>Chats</TabButton>
         <TabButton active={tab === "faq"} onClick={() => setTab("faq")}>FAQ</TabButton>
         <TabButton active={tab === "docs"} onClick={() => setTab("docs")}>Dokumentation</TabButton>
@@ -71,8 +71,8 @@ function ChatsTab() {
 
   return (
     <div className="chats">
-      <div className="chats__list">
-        <div className="chats__filters">
+      <div className="tds-stack">
+        <div className="tds-row">
           {(["open", "closed", ""] as const).map((f) => (
             <button key={f || "all"} type="button" className={filter === f ? "is-active" : ""} onClick={() => setFilter(f)}>
               {f === "open" ? "Offen" : f === "closed" ? "Geschlossen" : "Alle"}
@@ -80,14 +80,14 @@ function ChatsTab() {
           ))}
         </div>
         {sessions.length === 0 ? (
-          <p className="muted">Keine Chats.</p>
+          <p className="marginalia">Keine Chats.</p>
         ) : (
           <ul>
             {sessions.map((s) => (
               <li key={s.id}>
                 <button type="button" className={selected === s.id ? "is-active" : ""} onClick={() => setSelected(s.id)}>
                   <strong>{s.visitor_name || s.visitor_email || `Besucher #${s.id}`}</strong>
-                  <span className="chats__meta">
+                  <span className="marginalia">
                     {s.frontend ?? "–"} · {s.message_count} · {new Date(s.last_activity_at).toLocaleString("de-DE")}
                   </span>
                   {s.status === "open" ? <span className="chip chip--info">offen</span> : null}
@@ -97,9 +97,9 @@ function ChatsTab() {
           </ul>
         )}
       </div>
-      <div className="chats__detail">
+      <div className="tds-stack">
         {selected === null ? (
-          <p className="muted">Chat auswählen …</p>
+          <p className="marginalia">Chat auswählen …</p>
         ) : (
           <ChatThread sessionId={selected} onChanged={loadSessions} />
         )}
@@ -165,7 +165,7 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
 
   return (
     <div className="thread">
-      <div className="thread__head">
+      <div className="tds-row tds-row--between">
         <span className={`chip ${status === "open" ? "chip--info" : "chip--neutral"}`}>
           {status === "open" ? "offen" : "geschlossen"}
         </span>
@@ -188,7 +188,7 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
         ))}
         <div ref={endRef} />
       </div>
-      <div className="thread__compose">
+      <div className="tds-compose">
         <textarea
           value={reply}
           onChange={(e) => setReply(e.target.value)}
@@ -257,7 +257,7 @@ function FaqTab() {
 
   return (
     <div className="kb">
-      <form className="kb__form" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+      <form className="tds-stack" onSubmit={(e) => { e.preventDefault(); void save(); }}>
         <h3>{typeof draft.id === "number" ? "FAQ bearbeiten" : "Neue FAQ"}</h3>
         <div className="grid">
           <label>
@@ -291,7 +291,7 @@ function FaqTab() {
           </label>
         </div>
         {status ? <p className="tds-alert" role="status">{status}</p> : null}
-        <div className="kb__actions">
+        <div className="tds-toolbar">
           <button type="submit">Speichern</button>
           {typeof draft.id === "number" ? <button type="button" onClick={() => setDraft({ ...emptyFaq })}>Abbrechen</button> : null}
         </div>
@@ -301,9 +301,9 @@ function FaqTab() {
           <li key={r.id} className="tds-list__row">
             <div>
               <strong>{r.question}</strong>
-              <span className="kb__meta">{r.lang}{r.category ? ` · ${r.category}` : ""}{r.is_published ? "" : " · Entwurf"}</span>
+              <span className="marginalia">{r.lang}{r.category ? ` · ${r.category}` : ""}{r.is_published ? "" : " · Entwurf"}</span>
             </div>
-            <div className="kb__row-actions">
+            <div className="tds-toolbar">
               <button type="button" onClick={() => setDraft({ ...r, category: r.category ?? "" })}>Bearbeiten</button>
               <button type="button" className="btn btn-danger" onClick={() => remove(r.id)}>Löschen</button>
             </div>
@@ -367,7 +367,7 @@ function DocsTab() {
 
   return (
     <div className="kb">
-      <form className="kb__form" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+      <form className="tds-stack" onSubmit={(e) => { e.preventDefault(); void save(); }}>
         <h3>{typeof draft.id === "number" ? "Artikel bearbeiten" : "Neuer Artikel"}</h3>
         <div className="grid">
           <label>
@@ -401,7 +401,7 @@ function DocsTab() {
           </label>
         </div>
         {status ? <p className="tds-alert" role="status">{status}</p> : null}
-        <div className="kb__actions">
+        <div className="tds-toolbar">
           <button type="submit">Speichern</button>
           {typeof draft.id === "number" ? <button type="button" onClick={() => setDraft({ ...emptyDoc })}>Abbrechen</button> : null}
         </div>
@@ -411,9 +411,9 @@ function DocsTab() {
           <li key={r.id} className="tds-list__row">
             <div>
               <strong>{r.title}</strong>
-              <span className="kb__meta">{r.lang} · {r.slug}{r.is_published ? "" : " · Entwurf"}</span>
+              <span className="marginalia">{r.lang} · {r.slug}{r.is_published ? "" : " · Entwurf"}</span>
             </div>
-            <div className="kb__row-actions">
+            <div className="tds-toolbar">
               <button type="button" onClick={() => setDraft({ ...r })}>Bearbeiten</button>
               <button type="button" className="btn btn-danger" onClick={() => remove(r.id)}>Löschen</button>
             </div>

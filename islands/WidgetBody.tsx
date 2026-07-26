@@ -16,9 +16,9 @@ export default function WidgetBody() {
   }, []);
 
   return (
-    <div className="widget__body">
+    <div className="tds-stack">
       <p className="tds-widget__metric">{state === null ? "…" : state.openChats}</p>
-      <p className="widget__sub">
+      <p className="marginalia">
         {state === null ? "" : `${state.newContacts} neue Kontaktanfrage${state.newContacts === 1 ? "" : "n"}`}
       </p>
     </div>

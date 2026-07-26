@@ -1,6 +1,6 @@
 {
   "name": "@tracht-digital-solutions/tds-ext-live-chat-cta",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Live-Chat-CTA extension: a floating bottom-right support widget (live chat + FAQ + docs + contact form), per-frontend/per-feature activatable from the admin Einstellungen. Ships the backend Module + admin management surface; the visitor bubble island lives in tds-shared-pkg.",
   "license": "UNLICENSED",
   "private": false,
