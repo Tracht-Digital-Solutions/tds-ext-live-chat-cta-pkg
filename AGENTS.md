@@ -46,6 +46,49 @@ worked references.
 - `PACKAGE_TOKEN` (public-Packages PAT, `read`+`write`+`delete:packages` + `repo`,
   SSO-authorized) installs the contract and publishes; `NPM_TOKEN` is set from it in CI.
 
+## Tests
+
+```bash
+npm run test:run    # vitest, 151 tests (jsdom per-file via a @vitest-environment docblock)
+```
+
+- `islands/LiveChatManager.test.tsx` — the inbox, the FAQ editor and the docs
+  editor. The inbox is the live half (an agent watching a thread while a
+  visitor types), so what is pinned hardest is that a message is attributed to
+  the **right side** of the conversation, that the open/closed toggle sends the
+  **opposite** of the current state and does not flip the badge when the PATCH
+  fails, and that the 4 s poll runs *and is cleared on unmount*. Both editors
+  are pinned to **PUT an edit** rather than POST — a POST would silently create
+  a duplicate row on every save.
+- `islands/LiveChatSettings.test.tsx` — the activation matrix. Two invariants:
+  a frontend is **off until switched on** (there is deliberately no coded
+  default for `<frontend>_enabled`, so a fresh install never ships a live-chat
+  bubble onto a public site unattended), and a save writes the **whole** key
+  set, since this panel is the store's only writer.
+- `islands/WidgetBody.test.tsx` — the widget's states, incl. the `Number()`
+  coercion PDO string columns need for the plural rule.
+- `src/index.test.ts` + `tests/packaging.test.ts` — the manifest as a product
+  build sees it, and that every specifier resolves to a file that is both
+  exported and inside the published `files` allow-list.
+
+Error-path tests deliberately answer with a POPULATED body and a non-OK status.
+Against an EMPTY error body `res.ok ? (await res.json()).x ?? [] : []` and a bare
+`await res.json()` are indistinguishable, so the ok-check could be deleted with
+no test noticing.
+
+Two of the tests exist because the mutation pass proved the obvious version was
+blind: the FAQ category input and the accent-colour input both carry their own
+`?? ""` / `|| default`, so dropping the coded default upstream is **invisible on
+screen** and only shows in the saved payload. Both are now asserted against the
+PUT body, not the DOM.
+
+> **Divergence worth knowing:** `WidgetBody` renders `0` on a failed request,
+> where the lexware and time-tracker widgets render `—`. Pinned as-is rather
+> than changed here, but a 500 makes the tile read "0 offene Chats" — exactly
+> the state an agent stops looking at.
+
+Verified by mutation: 69 deliberate breakages introduced, 69 caught.
+
 ## Wiring points (Stage B — outside this repo)
 
 `tds-core-frontend-api` (`composer.json` path repo + require, `Modules::enabled()`),
