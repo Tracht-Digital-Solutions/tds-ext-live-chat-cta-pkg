@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { ConfirmDialog } from "@tracht-digital-solutions/tds-shared/components";
 
 /**
  * Admin management surface for the Live-Chat-CTA. Three tabs:
@@ -220,6 +221,8 @@ const emptyFaq: Omit<FaqRow, "id"> = { lang: "de", category: "", question: "", a
 function FaqTab() {
   const [rows, setRows] = useState<FaqRow[]>([]);
   const [draft, setDraft] = useState<Omit<FaqRow, "id"> & { id?: number }>({ ...emptyFaq });
+  const [pendingDelete, setPendingDelete] = useState<FaqRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -250,9 +253,17 @@ function FaqTab() {
     }
   };
 
-  const remove = async (id: number) => {
-    const res = await api(`/admin/live-chat-cta/faqs/${id}`, { method: "DELETE" });
-    if (res.ok) await load();
+  const confirmRemove = async () => {
+    const r = pendingDelete;
+    if (!r) return;
+    setDeleting(true);
+    try {
+      const res = await api(`/admin/live-chat-cta/faqs/${r.id}`, { method: "DELETE" });
+      setPendingDelete(null);
+      if (res.ok) await load();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -305,11 +316,20 @@ function FaqTab() {
             </div>
             <div className="tds-toolbar">
               <button type="button" onClick={() => setDraft({ ...r, category: r.category ?? "" })}>Bearbeiten</button>
-              <button type="button" className="btn btn-danger" onClick={() => remove(r.id)}>Löschen</button>
+              <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(r)}>Löschen</button>
             </div>
           </li>
         ))}
       </ul>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="FAQ-Eintrag löschen?"
+        message={pendingDelete?.question ?? undefined}
+        busy={deleting}
+        onConfirm={() => void confirmRemove()}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
@@ -330,6 +350,8 @@ const emptyDoc: Omit<DocRow, "id"> = { lang: "de", slug: "", title: "", body_mar
 function DocsTab() {
   const [rows, setRows] = useState<DocRow[]>([]);
   const [draft, setDraft] = useState<Omit<DocRow, "id"> & { id?: number }>({ ...emptyDoc });
+  const [pendingDelete, setPendingDelete] = useState<DocRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -360,9 +382,17 @@ function DocsTab() {
     }
   };
 
-  const remove = async (id: number) => {
-    const res = await api(`/admin/live-chat-cta/docs/${id}`, { method: "DELETE" });
-    if (res.ok) await load();
+  const confirmRemove = async () => {
+    const r = pendingDelete;
+    if (!r) return;
+    setDeleting(true);
+    try {
+      const res = await api(`/admin/live-chat-cta/docs/${r.id}`, { method: "DELETE" });
+      setPendingDelete(null);
+      if (res.ok) await load();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -415,11 +445,20 @@ function DocsTab() {
             </div>
             <div className="tds-toolbar">
               <button type="button" onClick={() => setDraft({ ...r })}>Bearbeiten</button>
-              <button type="button" className="btn btn-danger" onClick={() => remove(r.id)}>Löschen</button>
+              <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(r)}>Löschen</button>
             </div>
           </li>
         ))}
       </ul>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={`Dokument „${pendingDelete?.title ?? ""}“ löschen?`}
+        message="Die Sprachfassung wird dauerhaft entfernt."
+        busy={deleting}
+        onConfirm={() => void confirmRemove()}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
