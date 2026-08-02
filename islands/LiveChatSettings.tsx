@@ -108,20 +108,20 @@ export default function LiveChatSettings() {
         <legend className="text-sm font-semibold">Widget</legend>
         <label className="block">
           <span className="text-sm">CTA-Text (Button)</span>
-          <input type="text" value={values.cta_label ?? ""} onChange={(e) => set("cta_label", e.target.value)} />
+          <input className="field-boxed" type="text" value={values.cta_label ?? ""} onChange={(e) => set("cta_label", e.target.value)} />
         </label>
         <label className="block">
           <span className="text-sm">Begrüßung im Panel</span>
-          <input type="text" value={values.cta_greeting ?? ""} onChange={(e) => set("cta_greeting", e.target.value)} />
+          <input className="field-boxed" type="text" value={values.cta_greeting ?? ""} onChange={(e) => set("cta_greeting", e.target.value)} />
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
             <span className="text-sm">Akzentfarbe</span>
-            <input type="color" value={values.cta_accent || "#050f68"} onChange={(e) => set("cta_accent", e.target.value)} />
+            <input className="field-boxed" type="color" value={values.cta_accent || "#050f68"} onChange={(e) => set("cta_accent", e.target.value)} />
           </label>
           <label className="block">
             <span className="text-sm">Benachrichtigungs-E-Mail</span>
-            <input type="email" value={values.agent_email ?? ""} onChange={(e) => set("agent_email", e.target.value)} placeholder="support@…" />
+            <input className="field-boxed" type="email" value={values.agent_email ?? ""} onChange={(e) => set("agent_email", e.target.value)} placeholder="support@…" />
           </label>
         </div>
       </fieldset>
@@ -171,7 +171,7 @@ export default function LiveChatSettings() {
       </fieldset>
 
       {status ? <p className="tds-alert" role="status">{status}</p> : null}
-      <button type="button" onClick={save} disabled={busy}>Speichern</button>
+      <button className="btn btn-primary" type="button" onClick={save} disabled={busy}>Speichern</button>
     </div>
   );
 }

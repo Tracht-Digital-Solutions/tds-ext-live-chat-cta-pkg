@@ -31,7 +31,7 @@ export default function LiveChatManager() {
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" role="tab" aria-selected={active} className={active ? "is-active" : ""} onClick={onClick}>
+    <button type="button" role="tab" aria-selected={active} className={active ? "chip chip-active" : "chip"} onClick={onClick}>
       {children}
     </button>
   );
@@ -75,7 +75,7 @@ function ChatsTab() {
       <div className="tds-stack">
         <div className="tds-row">
           {(["open", "closed", ""] as const).map((f) => (
-            <button key={f || "all"} type="button" className={filter === f ? "is-active" : ""} onClick={() => setFilter(f)}>
+            <button key={f || "all"} type="button" className={filter === f ? "chip chip-active" : "chip"} onClick={() => setFilter(f)}>
               {f === "open" ? "Offen" : f === "closed" ? "Geschlossen" : "Alle"}
             </button>
           ))}
@@ -86,7 +86,7 @@ function ChatsTab() {
           <ul>
             {sessions.map((s) => (
               <li key={s.id}>
-                <button type="button" className={selected === s.id ? "is-active" : ""} onClick={() => setSelected(s.id)}>
+                <button type="button" className={selected === s.id ? "btn btn-ghost tds-row is-active" : "btn btn-ghost tds-row"} onClick={() => setSelected(s.id)}>
                   <strong>{s.visitor_name || s.visitor_email || `Besucher #${s.id}`}</strong>
                   <span className="marginalia">
                     {s.frontend ?? "–"} · {s.message_count} · {new Date(s.last_activity_at).toLocaleString("de-DE")}
@@ -170,7 +170,7 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
         <span className={`chip ${status === "open" ? "chip--info" : "chip--neutral"}`}>
           {status === "open" ? "offen" : "geschlossen"}
         </span>
-        <button type="button" onClick={toggleStatus}>{status === "open" ? "Schließen" : "Wieder öffnen"}</button>
+        <button className="btn btn-ghost" type="button" onClick={toggleStatus}>{status === "open" ? "Schließen" : "Wieder öffnen"}</button>
       </div>
       {/* Shared thread primitive. Sides mapped EXPLICITLY — `msg msg--${author}`
           matched no rule anywhere, so the bubbles rendered unstyled. This is the
@@ -190,7 +190,7 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
         <div ref={endRef} />
       </div>
       <div className="tds-compose">
-        <textarea
+        <textarea className="field-boxed"
           value={reply}
           onChange={(e) => setReply(e.target.value)}
           placeholder="Antwort schreiben …"
@@ -199,7 +199,7 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void send();
           }}
         />
-        <button type="button" onClick={send} disabled={busy || !reply.trim()}>Senden</button>
+        <button className="btn btn-primary" type="button" onClick={send} disabled={busy || !reply.trim()}>Senden</button>
       </div>
     </div>
   );
@@ -273,28 +273,28 @@ function FaqTab() {
         <div className="grid">
           <label>
             <span>Sprache</span>
-            <select value={draft.lang} onChange={(e) => setDraft({ ...draft, lang: e.target.value as "de" | "en" })}>
+            <select className="field-boxed" value={draft.lang} onChange={(e) => setDraft({ ...draft, lang: e.target.value as "de" | "en" })}>
               <option value="de">Deutsch</option>
               <option value="en">English</option>
             </select>
           </label>
           <label>
             <span>Kategorie</span>
-            <input type="text" value={draft.category ?? ""} onChange={(e) => setDraft({ ...draft, category: e.target.value })} />
+            <input className="field-boxed" type="text" value={draft.category ?? ""} onChange={(e) => setDraft({ ...draft, category: e.target.value })} />
           </label>
         </div>
         <label>
           <span>Frage</span>
-          <input type="text" value={draft.question} onChange={(e) => setDraft({ ...draft, question: e.target.value })} />
+          <input className="field-boxed" type="text" value={draft.question} onChange={(e) => setDraft({ ...draft, question: e.target.value })} />
         </label>
         <label>
           <span>Antwort</span>
-          <textarea rows={4} value={draft.answer} onChange={(e) => setDraft({ ...draft, answer: e.target.value })} />
+          <textarea className="field-boxed" rows={4} value={draft.answer} onChange={(e) => setDraft({ ...draft, answer: e.target.value })} />
         </label>
         <div className="grid">
           <label>
             <span>Reihenfolge</span>
-            <input type="number" value={draft.sort_order} onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) })} />
+            <input className="field-boxed" type="number" value={draft.sort_order} onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) })} />
           </label>
           <label className="checkbox">
             <input type="checkbox" checked={!!draft.is_published} onChange={(e) => setDraft({ ...draft, is_published: e.target.checked ? 1 : 0 })} />
@@ -303,8 +303,8 @@ function FaqTab() {
         </div>
         {status ? <p className="tds-alert" role="status">{status}</p> : null}
         <div className="tds-toolbar">
-          <button type="submit">Speichern</button>
-          {typeof draft.id === "number" ? <button type="button" onClick={() => setDraft({ ...emptyFaq })}>Abbrechen</button> : null}
+          <button className="btn btn-primary" type="submit">Speichern</button>
+          {typeof draft.id === "number" ? <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...emptyFaq })}>Abbrechen</button> : null}
         </div>
       </form>
       <ul className="tds-list">
@@ -315,7 +315,7 @@ function FaqTab() {
               <span className="marginalia">{r.lang}{r.category ? ` · ${r.category}` : ""}{r.is_published ? "" : " · Entwurf"}</span>
             </div>
             <div className="tds-toolbar">
-              <button type="button" onClick={() => setDraft({ ...r, category: r.category ?? "" })}>Bearbeiten</button>
+              <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...r, category: r.category ?? "" })}>Bearbeiten</button>
               <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(r)}>Löschen</button>
             </div>
           </li>
@@ -402,28 +402,28 @@ function DocsTab() {
         <div className="grid">
           <label>
             <span>Sprache</span>
-            <select value={draft.lang} onChange={(e) => setDraft({ ...draft, lang: e.target.value as "de" | "en" })}>
+            <select className="field-boxed" value={draft.lang} onChange={(e) => setDraft({ ...draft, lang: e.target.value as "de" | "en" })}>
               <option value="de">Deutsch</option>
               <option value="en">English</option>
             </select>
           </label>
           <label>
             <span>Slug (optional)</span>
-            <input type="text" value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="wird aus dem Titel erzeugt" />
+            <input className="field-boxed" type="text" value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="wird aus dem Titel erzeugt" />
           </label>
         </div>
         <label>
           <span>Titel</span>
-          <input type="text" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+          <input className="field-boxed" type="text" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
         </label>
         <label>
           <span>Inhalt (Markdown)</span>
-          <textarea rows={8} value={draft.body_markdown} onChange={(e) => setDraft({ ...draft, body_markdown: e.target.value })} />
+          <textarea className="field-boxed" rows={8} value={draft.body_markdown} onChange={(e) => setDraft({ ...draft, body_markdown: e.target.value })} />
         </label>
         <div className="grid">
           <label>
             <span>Reihenfolge</span>
-            <input type="number" value={draft.sort_order} onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) })} />
+            <input className="field-boxed" type="number" value={draft.sort_order} onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) })} />
           </label>
           <label className="checkbox">
             <input type="checkbox" checked={!!draft.is_published} onChange={(e) => setDraft({ ...draft, is_published: e.target.checked ? 1 : 0 })} />
@@ -432,8 +432,8 @@ function DocsTab() {
         </div>
         {status ? <p className="tds-alert" role="status">{status}</p> : null}
         <div className="tds-toolbar">
-          <button type="submit">Speichern</button>
-          {typeof draft.id === "number" ? <button type="button" onClick={() => setDraft({ ...emptyDoc })}>Abbrechen</button> : null}
+          <button className="btn btn-primary" type="submit">Speichern</button>
+          {typeof draft.id === "number" ? <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...emptyDoc })}>Abbrechen</button> : null}
         </div>
       </form>
       <ul className="tds-list">
@@ -444,7 +444,7 @@ function DocsTab() {
               <span className="marginalia">{r.lang} · {r.slug}{r.is_published ? "" : " · Entwurf"}</span>
             </div>
             <div className="tds-toolbar">
-              <button type="button" onClick={() => setDraft({ ...r })}>Bearbeiten</button>
+              <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...r })}>Bearbeiten</button>
               <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(r)}>Löschen</button>
             </div>
           </li>
