@@ -100,7 +100,7 @@ export default function LiveChatSettings() {
     }
   };
 
-  if (!loaded) return <p role="status"><Spinner /></p>;
+  if (!loaded) return <p><Spinner /></p>;
 
   return (
     <div className="live-chat-settings space-y-5">

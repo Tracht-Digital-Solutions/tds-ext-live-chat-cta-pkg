@@ -80,7 +80,7 @@ describe("loading", () => {
 
   it("shows a loading line until the settings arrive", () => {
     render(<LiveChatSettings />);
-    expect(screen.getByText("Wird geladen …")).toBeTruthy();
+    expect(screen.getByLabelText("Wird geladen")).toBeTruthy();
   });
 
   it("renders one row per frontend", async () => {
@@ -189,7 +189,7 @@ describe("loading", () => {
     getReply = { status: 500, body: {} };
     render(<LiveChatSettings />);
     await screen.findByText("Fehler (HTTP 500).");
-    expect(screen.queryByText("Wird geladen …")).toBeNull();
+    expect(screen.queryByLabelText("Wird geladen")).toBeNull();
   });
 
   it("does NOT apply values carried by a non-OK response", async () => {

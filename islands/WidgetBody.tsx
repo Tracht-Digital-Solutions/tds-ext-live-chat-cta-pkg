@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "@tracht-digital-solutions/tds-shared/components";
 
 /** Dashboard widget body — open chats + new contact requests. */
 export default function WidgetBody() {
@@ -17,7 +18,9 @@ export default function WidgetBody() {
 
   return (
     <div className="tds-stack">
-      <p className="tds-widget__metric">{state === null ? "…" : state.openChats}</p>
+      <p className="tds-widget__metric" aria-busy={state === null}>
+      {state === null ? <Skeleton width="3ch" height="1.75rem" /> : state.openChats}
+    </p>
       <p className="marginalia">
         {state === null ? "" : `${state.newContacts} neue Kontaktanfrage${state.newContacts === 1 ? "" : "n"}`}
       </p>
