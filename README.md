@@ -35,6 +35,12 @@ rebuild.
 - `GET/POST/PUT/DELETE /admin/live-chat-cta/faqs[/{id}]` — FAQ CRUD.
 - `GET/POST/PUT/DELETE /admin/live-chat-cta/docs[/{id}]` — documentation CRUD.
 
+**Seeded FAQ.** Migration `20260801000006` creates six published FAQ entries (DE + EN) on
+the central login — session scope ("gilt meine Anmeldung auch in den anderen Bereichen?"),
+sign-out, password change — because the login page itself no longer states this. They are
+normal rows: edit or delete them under `/live-chat`. The seed skips a question that already
+exists and never overwrites an edited answer.
+
 Config is stored in the core `SettingsStore` (namespace `live-chat-cta`): branding
 (`cta_label`/`cta_greeting`/`cta_accent`/`agent_email`) + the matrix `{frontend}_enabled`
 and `{frontend}_{chat|faq|docs|contact}` for frontends `landingpage`, `blog`, `customer`,
@@ -64,6 +70,21 @@ composer test
 DB-backed behaviour is exercised in `tds-core-frontend-api` (composed) against real MariaDB;
 this repo's phpunit boots the module on a real Slim app with a tiny container (public config
 reachable, admin route 401 anon).
+
+**Run the migrations for real after touching them** — phpunit does not, and Phinx only
+reports a file-name/class-name mismatch when it scans the set (which aborts *every*
+extension's migration, not just this one):
+
+```bash
+# throwaway DB + a temp phinx config pointing at php/db/migrations
+docker run --rm -d --name tds-maria -e MARIADB_ROOT_PASSWORD=dev \
+  -e MARIADB_DATABASE=tds_livechat -p 3306:3306 mariadb:11
+php ../tds-core-frontend-api/vendor/bin/phinx migrate -c /path/to/phinx-test.php -e test
+php ../tds-core-frontend-api/vendor/bin/phinx rollback -c /path/to/phinx-test.php -e test -t 20260801000005
+```
+
+The seed (`20260801000006`) is worth re-running twice with an edited row in between: it must
+add nothing the second time and must not touch the edit, and the rollback must leave it.
 
 ## Versioning
 
