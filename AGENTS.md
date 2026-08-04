@@ -56,6 +56,13 @@ worked references.
   `/wiki` FAQ (`tds-core-frontend-pkg`, `src/content/faq.ts`) — keep the two in rough sync
   when the login behaviour changes. Answers are plain text (the widget's `Prose` renderer
   splits on newlines and renders text nodes; there is no markup layer).
+- **Outcomes are toasts (tds-shared `>=0.16.0`), validation stays in-flow.** The
+  agent's reply and the open/closed toggle were bare `if (res.ok)` branches — a
+  rejected reply left the draft in the box with no hint that the visitor never
+  got it, and the badge simply didn't move, which reads as a dead click. Those
+  and both editors' save paths now `toast`; what remains in the in-flow banner is
+  form validation and the load failure, so it moved to `.tds-alert--danger`.
+  Never mount a `ToastHost` here — the frontend host owns the only one.
 - **Env precedence trap**: read env with the explicit `getenv() === false ? default` pattern
   (`self::env()`), never `?? getenv() ?: $default` (clobbers `"0"`/`""`).
 - Depends on the **published** `tds-frontend-contract` (`^1.0.0`) — npm from GitHub Packages,

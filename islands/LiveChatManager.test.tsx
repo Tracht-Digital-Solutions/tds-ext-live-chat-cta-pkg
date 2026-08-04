@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LiveChatManager from "./LiveChatManager";
+import { TOAST_EVENT } from "@tracht-digital-solutions/tds-shared/toast";
 
 /**
  * The admin management surface: the visitor-chat inbox, the FAQ editor and the
@@ -74,7 +75,15 @@ const DOC = {
   is_published: 1,
 };
 
+/** Outcomes are toasts now — collected off the `tds:toast` bus. */
+let toasts: Array<{ variant: string; message: string }> = [];
+const collectToast = (e: Event) => {
+  toasts.push((e as CustomEvent<{ variant: string; message: string }>).detail);
+};
+
 beforeEach(() => {
+  toasts = [];
+  window.addEventListener(TOAST_EVENT, collectToast);
   calls = [];
   // jsdom has no scrollIntoView at all; the thread calls it on every render.
   (Element.prototype as unknown as { scrollIntoView: () => void }).scrollIntoView = vi.fn();
@@ -95,6 +104,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  window.removeEventListener(TOAST_EVENT, collectToast);
   cleanup();
   vi.useRealTimers();
 });
@@ -246,7 +256,10 @@ describe("a chat thread", () => {
     return u;
   }
   /** The thread's own status bar (the list has an "offen" badge as well). */
-  const head = () => document.querySelector(".thread__head") as HTMLElement;
+  // The bespoke `.thread__head` was replaced by the shared `.tds-row--between`
+  // head when the design library absorbed the chat chrome; this helper kept
+  // querying the old class, returned null, and took four tests down with it.
+  const head = () => document.querySelector(".thread .tds-row--between") as HTMLElement;
 
   it("loads the messages of the clicked chat", async () => {
     await openThread();
@@ -258,8 +271,16 @@ describe("a chat thread", () => {
     // Asserting only that both messages render passes even when the visitor
     // and the agent are swapped — which would read as the agent asking for help.
     await openThread();
-    expect(screen.getByText("Hallo, ist jemand da?").closest(".msg")!.className).toContain("msg--visitor");
-    expect(screen.getByText("Ja, wie können wir helfen?").closest(".msg")!.className).toContain("msg--agent");
+    // The sides are the shared thread primitive's now (this is the AGENT view,
+    // so the agent is `--own`). The old `.msg--visitor`/`--agent` classes
+    // matched no rule anywhere, which is why they were replaced — and why this
+    // assertion had been passing over a null element ever since.
+    expect(
+      screen.getByText("Hallo, ist jemand da?").closest(".tds-thread__item")!.className,
+    ).toContain("tds-thread__item--other");
+    expect(
+      screen.getByText("Ja, wie können wir helfen?").closest(".tds-thread__item")!.className,
+    ).toContain("tds-thread__item--own");
   });
 
   it("shows the thread as open and offers to close it", async () => {
@@ -564,7 +585,7 @@ describe("the FAQ editor", () => {
     await u.type(field("Frage"), "Was kostet das?");
     await u.type(field("Antwort"), "Es kommt darauf an.");
     await u.click(screen.getByRole("button", { name: "Speichern" }));
-    expect(await screen.findByText("Fehler (HTTP 500).")).toBeTruthy();
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("500"))).toBe(true));
     expect((field("Frage") as HTMLInputElement).value).toBe("Was kostet das?");
   });
 
@@ -574,7 +595,7 @@ describe("the FAQ editor", () => {
     await u.type(field("Frage"), "Was kostet das?");
     await u.type(field("Antwort"), "Es kommt darauf an.");
     await u.click(screen.getByRole("button", { name: "Speichern" }));
-    await screen.findByText("Fehler (HTTP 500).");
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("500"))).toBe(true));
     expect(sent("GET", /faqs$/)).toHaveLength(1);
   });
 
@@ -596,6 +617,7 @@ describe("the FAQ editor", () => {
     await screen.findByText("Und sonst?");
     const row = screen.getAllByRole("listitem").find((li) => li.textContent!.includes("Und sonst?"))!;
     await u.click(within(row).getByRole("button", { name: "Löschen" }));
+    await u.click(screen.getAllByRole("button", { name: /Löschen/ }).at(-1)!);
     await waitFor(() => expect(sent("DELETE", /faqs\/12$/)).toHaveLength(1));
     expect(sent("DELETE", /faqs\/11$/)).toHaveLength(0);
   });
@@ -603,6 +625,7 @@ describe("the FAQ editor", () => {
   it("reloads the list after a delete", async () => {
     const u = await openFaq([FAQ]);
     await u.click(await screen.findByRole("button", { name: "Löschen" }));
+    await u.click(screen.getAllByRole("button", { name: /Löschen/ }).at(-1)!);
     await waitFor(() => expect(sent("GET", /faqs$/)).toHaveLength(2));
   });
 
@@ -610,6 +633,7 @@ describe("the FAQ editor", () => {
     respond(/faqs\/11$/, { error: "nope" }, 500, "DELETE");
     const u = await openFaq([FAQ]);
     await u.click(await screen.findByRole("button", { name: "Löschen" }));
+    await u.click(screen.getAllByRole("button", { name: /Löschen/ }).at(-1)!);
     await waitFor(() => expect(sent("DELETE", /faqs\/11$/)).toHaveLength(1));
     expect(sent("GET", /faqs$/)).toHaveLength(1);
   });
@@ -736,6 +760,7 @@ describe("the documentation editor", () => {
     await screen.findByText("Weiterführend");
     const row = screen.getAllByRole("listitem").find((li) => li.textContent!.includes("Weiterführend"))!;
     await u.click(within(row).getByRole("button", { name: "Löschen" }));
+    await u.click(screen.getAllByRole("button", { name: /Löschen/ }).at(-1)!);
     await waitFor(() => expect(sent("DELETE", /docs\/22$/)).toHaveLength(1));
     expect(sent("DELETE", /docs\/21$/)).toHaveLength(0);
   });
@@ -750,7 +775,7 @@ describe("the documentation editor", () => {
     const u = await openDocs();
     await u.type(field("Titel"), "Erste Schritte");
     await u.click(screen.getByRole("button", { name: "Speichern" }));
-    expect(await screen.findByText("Fehler (HTTP 409).")).toBeTruthy();
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("409"))).toBe(true));
   });
 
   it("does not list articles carried by a non-OK response", async () => {
