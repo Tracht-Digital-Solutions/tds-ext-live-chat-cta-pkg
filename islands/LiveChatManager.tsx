@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { ConfirmDialog } from "@tracht-digital-solutions/tds-shared/components";
+import { ConfirmDialog, toast } from "@tracht-digital-solutions/tds-shared/components";
 
 /**
  * Admin management surface for the Live-Chat-CTA. Three tabs:
@@ -148,6 +148,10 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
     if (res.ok) {
       setReply("");
       await load();
+    } else {
+      // Used to be a bare `if (res.ok)`: a rejected reply left the draft in
+      // the box with no hint that the customer never received it.
+      toast.danger(`Antwort konnte nicht gesendet werden (HTTP ${res.status}).`);
     }
   };
 
@@ -161,6 +165,9 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
     if (res.ok) {
       setStatus(next);
       onChanged();
+    } else {
+      // The badge simply did not move on failure, which reads as a dead click.
+      toast.danger(`Status konnte nicht geändert werden (HTTP ${res.status}).`);
     }
   };
 
@@ -247,9 +254,10 @@ function FaqTab() {
     if (res.ok) {
       setDraft({ ...emptyFaq });
       setStatus(null);
+      toast.success(isEdit ? "FAQ-Eintrag gespeichert." : "FAQ-Eintrag angelegt.");
       await load();
     } else {
-      setStatus(`Fehler (HTTP ${res.status}).`);
+      toast.danger(`Speichern fehlgeschlagen (HTTP ${res.status}).`);
     }
   };
 
@@ -301,7 +309,8 @@ function FaqTab() {
             <span>Veröffentlicht</span>
           </label>
         </div>
-        {status ? <p className="tds-alert" role="status">{status}</p> : null}
+        {/* Only form validation reaches this now — outcomes are toasts. */}
+        {status ? <p className="tds-alert tds-alert--danger" role="alert">{status}</p> : null}
         <div className="tds-toolbar">
           <button className="btn btn-primary" type="submit">Speichern</button>
           {typeof draft.id === "number" ? <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...emptyFaq })}>Abbrechen</button> : null}
@@ -378,7 +387,7 @@ function DocsTab() {
       setStatus(null);
       await load();
     } else {
-      setStatus(`Fehler (HTTP ${res.status}).`);
+      toast.danger(`Speichern fehlgeschlagen (HTTP ${res.status}).`);
     }
   };
 
@@ -430,7 +439,8 @@ function DocsTab() {
             <span>Veröffentlicht</span>
           </label>
         </div>
-        {status ? <p className="tds-alert" role="status">{status}</p> : null}
+        {/* Only form validation reaches this now — outcomes are toasts. */}
+        {status ? <p className="tds-alert tds-alert--danger" role="alert">{status}</p> : null}
         <div className="tds-toolbar">
           <button className="btn btn-primary" type="submit">Speichern</button>
           {typeof draft.id === "number" ? <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...emptyDoc })}>Abbrechen</button> : null}

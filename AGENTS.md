@@ -36,6 +36,33 @@ worked references.
 - **Migrations**: `LiveChatCta*` class prefix + the `20260801*` version band are globally
   unique across all composed extensions (one shared phinxlog, one PHP process — a reused
   class fatals, a reused version collides).
+- **The FILE name must map to the class name** — `<version>_live_chat_cta_create_faq.php`
+  ⇒ `LiveChatCtaCreateFaq`. Phinx derives the expected class from the file name
+  (`Util::mapFileNameToClassName`: strip version, `ucwords` on `_`) and throws
+  `InvalidArgumentException: Could not find class …` when it doesn't match. That throw
+  happens while *scanning* the migration set, so it takes down the whole composed run:
+  **no extension migrates**, and the frontend API answers 500 after every deploy. All five
+  files were originally named `create_live_chat_cta_*` (⇒ `CreateLiveChatCta*`) against
+  `LiveChatCtaCreate*` classes, i.e. this extension's schema had never once applied; the
+  files were renamed with the module prefix first (0.1.9). Verify with a real Phinx run,
+  not by reading — see the recipe in the README.
+- **The FAQ ships a seed, and the seed must stay non-destructive.** `20260801000006`
+  inserts the central-login entries (DE + EN: session scope, sign-out, password change) —
+  the answer to "gilt meine Anmeldung überall?", which `tds-auth-frontend` deliberately no
+  longer prints on the login page. They are ordinary rows afterwards, editable under
+  `/live-chat`, so the seed **skips a question that already exists** and `down()` deletes
+  only rows still carrying the seeded answer verbatim: a re-run or rollback must never
+  overwrite or drop an operator's edit. The staff-facing counterpart is the frontend host's
+  `/wiki` FAQ (`tds-core-frontend-pkg`, `src/content/faq.ts`) — keep the two in rough sync
+  when the login behaviour changes. Answers are plain text (the widget's `Prose` renderer
+  splits on newlines and renders text nodes; there is no markup layer).
+- **Outcomes are toasts (tds-shared `>=0.16.0`), validation stays in-flow.** The
+  agent's reply and the open/closed toggle were bare `if (res.ok)` branches — a
+  rejected reply left the draft in the box with no hint that the visitor never
+  got it, and the badge simply didn't move, which reads as a dead click. Those
+  and both editors' save paths now `toast`; what remains in the in-flow banner is
+  form validation and the load failure, so it moved to `.tds-alert--danger`.
+  Never mount a `ToastHost` here — the frontend host owns the only one.
 - **Env precedence trap**: read env with the explicit `getenv() === false ? default` pattern
   (`self::env()`), never `?? getenv() ?: $default` (clobbers `"0"`/`""`).
 - Depends on the **published** `tds-frontend-contract` (`^1.0.0`) — npm from GitHub Packages,
