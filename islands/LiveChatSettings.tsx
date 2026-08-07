@@ -114,7 +114,7 @@ export default function LiveChatSettings() {
           <span className="text-sm">Begrüßung im Panel</span>
           <input className="field-boxed" type="text" value={values.cta_greeting ?? ""} onChange={(e) => set("cta_greeting", e.target.value)} />
         </label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="block">
             <span className="text-sm">Akzentfarbe</span>
             <input className="field-boxed" type="color" value={values.cta_accent || "#050f68"} onChange={(e) => set("cta_accent", e.target.value)} />
@@ -131,8 +131,15 @@ export default function LiveChatSettings() {
         <p className="text-sm opacity-70">
           Widget pro Frontend an/aus — und je Frontend einzeln festlegen, welche Funktionen erscheinen.
         </p>
-        <div className="live-chat-settings__matrix" style={{ overflowX: "auto" }}>
-          <table>
+        {/* This matrix used to carry no shared class and an inline `overflowX`
+            instead. Extensions ship no CSS, so `.live-chat-settings__matrix`
+            styled nothing and it rendered on browser defaults — no cell
+            padding, no header treatment. `.tds-table` supplies all of that AND
+            scrolls itself below 40rem, so the hand-rolled scroll container is
+            redundant. (Don't write the tag name in this comment:
+            lint-primitives is a regex scan and reads it as markup.) */}
+        <div className="live-chat-settings__matrix">
+          <table className="tds-table">
             <thead>
               <tr>
                 <th>Frontend</th>
