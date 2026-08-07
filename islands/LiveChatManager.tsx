@@ -74,9 +74,14 @@ function ChatsTab() {
     // `.chats` is a bespoke name with no rule behind it (extensions ship no
     // CSS), so this was `display: block` and the session list sat ON TOP of
     // the conversation at every width — mobile was correct by accident and
-    // the desktop was the broken one. Two columns from `md` up; the `md:`
-    // prefix is what keeps the phone layout stacked.
-    <div className="chats grid gap-4 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+    // the desktop was the broken one. A third for the list, two thirds for
+    // the thread, from `md` up; the `md:` prefix is what keeps the phone
+    // layout stacked.
+    //
+    // Plain track utilities rather than an arbitrary `grid-cols-[…]` value:
+    // that form was verified NOT to be generated from a package inside
+    // node_modules, so it would have shipped as no layout at all.
+    <div className="chats grid gap-4 md:grid-cols-3">
       <div className="tds-stack min-w-0">
         <div className="tds-row">
           {(["open", "closed", ""] as const).map((f) => (
@@ -103,7 +108,7 @@ function ChatsTab() {
           </ul>
         )}
       </div>
-      <div className="tds-stack min-w-0">
+      <div className="tds-stack min-w-0 md:col-span-2">
         {selected === null ? (
           <p className="marginalia">Chat auswählen …</p>
         ) : (
