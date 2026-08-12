@@ -30,9 +30,18 @@ let calls: Array<{ url: string; method: string; body: unknown }> = [];
 let handlers: Handler[] = [];
 
 /** Register a reply, newest first (later `respond` calls win). */
+
+/**
+ * Path + query of a request. The island calls an ABSOLUTE URL now (via
+ * `apiFetch`); a relative one would hit the product's own static host and come
+ * back as SPA-fallback HTML with a 200. Matching on the path keeps the route
+ * matchers below anchored.
+ */
+const pathOf = (url: string) => String(url).replace(/^https?:\/\/[^/]+/i, "");
+
 function respond(match: RegExp, body: unknown, status = 200, method?: string) {
   handlers.unshift((url, init) => {
-    if (!match.test(url)) return undefined;
+    if (!match.test(pathOf(url))) return undefined;
     if (method && (init?.method ?? "GET") !== method) return undefined;
     return { status, body };
   });
@@ -110,7 +119,7 @@ afterEach(() => {
 });
 
 const user = () => userEvent.setup({ delay: null });
-const sent = (method: string, match: RegExp) => calls.filter((c) => c.method === method && match.test(c.url));
+const sent = (method: string, match: RegExp) => calls.filter((c) => c.method === method && match.test(pathOf(c.url)));
 
 async function open(tab?: string) {
   render(<LiveChatManager />);
@@ -152,7 +161,7 @@ describe("the tab bar", () => {
 describe("the chat inbox", () => {
   it("asks for OPEN chats first — the ones waiting on a reply", async () => {
     await open();
-    expect(calls[0]!.url).toBe(`${SESSIONS}?status=open`);
+    expect(pathOf(calls[0]!.url)).toBe(`${SESSIONS}?status=open`);
     const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
     expect(fetchMock.mock.calls[0]![1]).toMatchObject({ credentials: "include" });
   });
@@ -160,14 +169,14 @@ describe("the chat inbox", () => {
   it("filters to closed chats", async () => {
     const u = await open();
     await u.click(screen.getByRole("button", { name: "Geschlossen" }));
-    await waitFor(() => expect(calls.some((c) => c.url === `${SESSIONS}?status=closed`)).toBe(true));
+    await waitFor(() => expect(calls.some((c) => pathOf(c.url) === `${SESSIONS}?status=closed`)).toBe(true));
   });
 
   it("drops the filter entirely for Alle", async () => {
     // `?status=` would be a filter for the empty status, not "no filter".
     const u = await open();
     await u.click(screen.getByRole("button", { name: "Alle" }));
-    await waitFor(() => expect(calls.some((c) => c.url === SESSIONS)).toBe(true));
+    await waitFor(() => expect(calls.some((c) => pathOf(c.url) === SESSIONS)).toBe(true));
   });
 
   it("says so when nothing is waiting", async () => {
@@ -515,7 +524,7 @@ describe("the FAQ editor", () => {
     await u.type(field("Antwort"), "Es kommt darauf an.");
     await u.click(screen.getByRole("button", { name: "Speichern" }));
     await waitFor(() => expect(sent("POST", /faqs$/)).toHaveLength(1));
-    expect(sent("POST", /faqs$/)[0]!.url).toBe("/admin/live-chat-cta/faqs");
+    expect(pathOf(sent("POST", /faqs$/)[0]!.url)).toBe("/admin/live-chat-cta/faqs");
     expect(sent("POST", /faqs$/)[0]!.body).toMatchObject({
       lang: "de",
       question: "Was kostet das?",

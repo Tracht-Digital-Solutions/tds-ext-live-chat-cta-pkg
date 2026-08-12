@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ConfirmDialog, toast } from "@tracht-digital-solutions/tds-shared/components";
+import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
 
 /**
  * Admin management surface for the Live-Chat-CTA. Three tabs:
@@ -10,7 +11,7 @@ import { ConfirmDialog, toast } from "@tracht-digital-solutions/tds-shared/compo
  * All calls are relative (the gateway proxies to core-frontend-api) with cookies.
  */
 
-const api = (path: string, init?: RequestInit) => fetch(path, { credentials: "include", ...init });
+const api = apiFetch;
 const POLL_MS = 4000;
 
 type Tab = "chats" | "faq" | "docs";

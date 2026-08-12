@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Spinner, toast } from "@tracht-digital-solutions/tds-shared/components";
+import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
 
 /**
  * Live-Chat settings — the activation matrix (each frontend × {master, chat, faq,
@@ -17,7 +18,7 @@ interface Masked {
   value?: string;
 }
 
-const api = (path: string, init?: RequestInit) => fetch(path, { credentials: "include", ...init });
+const api = apiFetch;
 const NS = "/admin/settings/live-chat-cta";
 
 const FRONTENDS: { key: string; label: string }[] = [
