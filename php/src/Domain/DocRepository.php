@@ -29,6 +29,46 @@ final class DocRepository
         return $stmt->fetchAll();
     }
 
+    /**
+     * Published docs WITHOUT their bodies, for the customer wiki's handbook
+     * index.
+     *
+     * The widget wants everything in one call because it renders inline; the
+     * wiki lists titles and fetches a body only when one is opened. A handbook
+     * body is markdown of arbitrary length, so shipping two hundred of them to
+     * draw a list of headings is the difference between a page that opens and
+     * one that stalls.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function publishedIndex(string $lang): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, slug, title, sort_order, updated_at FROM live_chat_doc
+             WHERE lang = :l AND is_published = 1
+             ORDER BY sort_order ASC, id ASC LIMIT 200'
+        );
+        $stmt->execute([':l' => $lang]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * One published doc by its slug. Unpublished articles are invisible here —
+     * the slug is guessable, so the check belongs in the query, not the caller.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function findPublishedBySlug(string $slug, string $lang): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, slug, title, body_markdown, updated_at FROM live_chat_doc
+             WHERE slug = :s AND lang = :l AND is_published = 1 LIMIT 1'
+        );
+        $stmt->execute([':s' => $slug, ':l' => $lang]);
+        $row = $stmt->fetch();
+        return $row === false ? null : $row;
+    }
+
     /** @return list<array<string,mixed>> */
     public function all(): array
     {

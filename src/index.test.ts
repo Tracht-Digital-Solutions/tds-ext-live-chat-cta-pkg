@@ -61,14 +61,17 @@ describe("permissions", () => {
     }
   });
 
-  it("gates the page and the widget on read, never on nothing", () => {
-    // This hub exposes customer names, rates and invoices; an ungated route
-    // would show them to every logged-in user of the product.
+  it("gates every page and the widget on a read permission, never on nothing", () => {
+    // An ungated route would show visitor conversations, or hand the wiki
+    // editor, to every logged-in user of the product. Two read permissions
+    // exist because the extension owns two surfaces: the chat inbox
+    // (`live-chat:read`) and the wiki-content editor (`wiki:read`).
+    const reads = ["live-chat:read", "wiki:read"];
     for (const route of manifest.routes ?? []) {
-      expect(route.permission, `route ${route.pattern} is ungated`).toBe("live-chat:read");
+      expect(reads, `route ${route.pattern} is ungated`).toContain(route.permission);
     }
     for (const widget of manifest.widgets ?? []) {
-      expect(widget.permission, `widget ${widget.id} is ungated`).toBe("live-chat:read");
+      expect(reads, `widget ${widget.id} is ungated`).toContain(widget.permission);
     }
   });
 
@@ -129,11 +132,14 @@ describe("nav, routes and widgets", () => {
     expect(manifest.widgets?.[0]?.dataEndpoint).toBe("/live-chat-cta/summary");
   });
 
-  it("namespaces its nav, widget and settings ids under the module", () => {
-    // These share one namespace across every composed extension.
-    for (const n of manifest.nav ?? []) expect(n.id).toMatch(/^live-chat/);
-    for (const w of manifest.widgets ?? []) expect(w.id).toMatch(/^live-chat/);
-    for (const s of manifest.settings ?? []) expect(s.id).toMatch(/^live-chat/);
+  it("namespaces its nav, widget and settings ids under one of its surfaces", () => {
+    // These share one namespace across every composed extension. Two prefixes
+    // are allowed because this extension owns two surfaces — but a bare id
+    // (`docs`, `faq`) would still be a collision waiting to happen.
+    const owned = /^(live-chat|wiki)/;
+    for (const n of manifest.nav ?? []) expect(n.id).toMatch(owned);
+    for (const w of manifest.widgets ?? []) expect(w.id).toMatch(owned);
+    for (const s of manifest.settings ?? []) expect(s.id).toMatch(owned);
   });
 
   it("orders nav and widgets deterministically", () => {
@@ -164,7 +170,7 @@ describe("i18n", () => {
 
   it("namespaces its i18n keys so they cannot collide with another extension", () => {
     for (const key of Object.keys(manifest.i18n?.de ?? {})) {
-      expect(key, `${key} is not namespaced`).toMatch(/^live-chat\./);
+      expect(key, `${key} is not namespaced`).toMatch(/^(live-chat|wiki-content)\./);
     }
   });
 });

@@ -8,10 +8,13 @@ worked references.
 
 ## Shape
 
-- `src/index.ts` — the `defineExtension({...})` manifest (admin route `/live-chat`, dashboard
-  widget, settings section, `live-chat:read`/`live-chat:write` permissions, i18n).
-- `pages/Index.astro` + `islands/LiveChatManager.tsx` — the admin management surface (tabs:
-  Chats inbox / FAQ / Dokumentation). Content-only page (host Layout wraps it).
+- `src/index.ts` — the `defineExtension({...})` manifest (admin routes `/live-chat` and
+  `/wiki-inhalte`, dashboard widget, settings section, `live-chat:*` + `wiki:*` permissions, i18n).
+- `pages/Index.astro` + `islands/LiveChatManager.tsx` — the chat inbox. Content-only page
+  (host Layout wraps it).
+- `pages/WikiContent.astro` + `islands/WikiContentManager.tsx` — the **Wiki-Inhalte** editor
+  (tabs: FAQ / Handbücher), split out of the inbox when the panel gained two wikis.
+- `php/docs/api.php` — the route documentation the admin API reference renders.
 - `islands/Settings.astro` + `islands/LiveChatSettings.tsx` — the settings section: the
   frontend × feature **activation matrix** + branding, read/written via `/admin/settings/live-chat-cta`.
 - `widgets/Widget.astro` + `islands/WidgetBody.tsx` — the "Offene Chats" dashboard widget.
@@ -69,10 +72,30 @@ worked references.
   longer prints on the login page. They are ordinary rows afterwards, editable under
   `/live-chat`, so the seed **skips a question that already exists** and `down()` deletes
   only rows still carrying the seeded answer verbatim: a re-run or rollback must never
-  overwrite or drop an operator's edit. The staff-facing counterpart is the frontend host's
-  `/wiki` FAQ (`tds-core-frontend-pkg`, `src/content/faq.ts`) — keep the two in rough sync
-  when the login behaviour changes. Answers are plain text (the widget's `Prose` renderer
-  splits on newlines and renders text nodes; there is no markup layer).
+  overwrite or drop an operator's edit. Answers are plain text (the widget's `Prose`
+  renderer splits on newlines and renders text nodes; there is no markup layer).
+  > There used to be a second, hard-coded copy of these three entries in the frontend
+  > host (`src/content/faq.ts`) that had to be kept "in rough sync" by hand. It is
+  > **gone**: `live_chat_faq` is now the single source, read by the customer wiki through
+  > `/help/faqs`. Do not reintroduce a code-side FAQ list.
+
+- **This extension owns the customer portal's WIKI CONTENT, not just the chat bubble.**
+  `live_chat_faq` and `live_chat_doc` feed two surfaces from one set of rows: the widget's
+  FAQ/Doku tabs *and* `/wiki` in the customer portal. Three consequences:
+  - **`/help/faqs`, `/help/articles`, `/help/articles/{slug}` are public and NOT behind the
+    widget's per-frontend tab flags.** The portal's Wiki must not go blank because someone
+    switched the chat bubble's FAQ tab off on a marketing site. They are also the reason a
+    *base* page can render the wiki at all: the customer product does not compose this
+    extension's frontend half, so `/wiki` there is host code calling this API — the same
+    arrangement the shell already uses for `/live-chat-cta/config`.
+  - **The article index ships without bodies.** `/help/articles` returns titles and slugs;
+    the body arrives from `/help/articles/{slug}` when one is opened. The widget wants
+    everything at once because it renders inline — the wiki does not, and shipping two
+    hundred markdown bodies to draw a list of headings is the difference between a page
+    that opens and one that stalls.
+  - **Editing is `wiki:*`, the inbox is `live-chat:*`.** Publishing help content and
+    answering support chats are different jobs granted to different people. An existing
+    `live-chat:write` holder does **not** inherit wiki editing (admins bypass, as always).
 - **Outcomes are toasts (tds-shared `>=0.16.0`), validation stays in-flow.** The
   agent's reply and the open/closed toggle were bare `if (res.ok)` branches — a
   rejected reply left the draft in the box with no hint that the visitor never
@@ -93,11 +116,15 @@ worked references.
 ## Tests
 
 ```bash
-npm run test:run    # vitest, 151 tests (jsdom per-file via a @vitest-environment docblock)
+npm run test:run    # vitest, 149 tests (jsdom per-file via a @vitest-environment docblock)
+composer test       # phpunit: the Module's routes/RBAC + route↔documentation parity
 ```
 
-- `islands/LiveChatManager.test.tsx` — the inbox, the FAQ editor and the docs
-  editor. The inbox is the live half (an agent watching a thread while a
+- `islands/LiveChatManager.test.tsx` — the inbox, and that the page has **no tab
+  bar** any more (a leftover one would mean two ways to reach one editor).
+- `islands/WikiContentManager.test.tsx` — the FAQ editor and the handbook
+  editor, split off with the island. The inbox is the live half (an agent
+  watching a thread while a
   visitor types), so what is pinned hardest is that a message is attributed to
   the **right side** of the conversation, that the open/closed toggle sends the
   **opposite** of the current state and does not flip the badge when the PATCH
@@ -160,3 +187,20 @@ Tailwind utility, and neither is checked by anything at runtime. Two rules:
 `<table>` without `tds-table` and a flex/grid table cell, which silently
 drops the cell out of the column algorithm). It is a **regex scan**, so a tag
 name written inside a comment counts as markup — name elements in prose.
+
+## API-Referenz (`php/docs/api.php`)
+
+This module implements the contract's optional `ApiDocSource`: `php/docs/api.php`
+returns one entry per route (summary, params, responses, required permission),
+and the admin frontend's API reference joins it onto the introspected Slim routes
+by `"<METHOD> <pattern>"`. Two things to know before editing a route:
+
+- **`pattern` must be the Slim pattern verbatim**, inline regex included
+  (`/admin/live-chat-cta/faqs/{id:[0-9]+}`). A prettified path silently produces an orphan doc *and* an
+  undocumented route rather than an error.
+- **`php/tests/LiveChatCtaApiDocsTest.php` asserts both directions** — the documented
+  set and the registered set must be the same set, every path placeholder must
+  be described, and a named permission must exist in `permissions()`. Adding or
+  renaming a route without touching `docs/api.php` fails there. That is the
+  point: prose next to code rots, and a reference full of confident, wrong
+  detail is worse than the bare route list it replaced.

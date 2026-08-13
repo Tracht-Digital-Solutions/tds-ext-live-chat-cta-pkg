@@ -1,0 +1,20 @@
+---
+// Wiki content editor, injected into the host build via the manifest's route
+// slot. Content-only fragment — the host Layout (head/CSS/nav/auth-gate) wraps it.
+//
+// Admin-only by composition: the customer product does not install this
+// extension, so the page simply does not exist there. What the customer sees is
+// the base `/wiki` page, which reads the published rows through `/help/*`.
+import WikiContentManager from "../islands/WikiContentManager.tsx";
+---
+
+<section class="tds-page">
+  <div class="tds-page__head">
+    <h1 class="tds-page__title">Wiki-Inhalte</h1>
+  </div>
+  <p class="tds-page__lede">
+    FAQs und Handbücher für das Kunden-Wiki pflegen. Veröffentlichte Einträge
+    erscheinen im Portal unter <em>Hilfe</em> und im Support-Widget.
+  </p>
+  <WikiContentManager client:load />
+</section>

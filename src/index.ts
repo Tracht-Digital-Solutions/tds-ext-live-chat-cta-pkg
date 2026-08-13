@@ -17,6 +17,11 @@ export default defineExtension({
   permissions: [
     { id: "live-chat:read", label: "Live-Chat ansehen", group: "live-chat-cta" },
     { id: "live-chat:write", label: "Live-Chat bearbeiten", group: "live-chat-cta" },
+    // Must mirror the PHP Module's permissions() exactly. Separate from
+    // live-chat:* because these rows are the customer portal's Wiki — editing
+    // them is content publishing, not support work.
+    { id: "wiki:read", label: "Wiki-Inhalte ansehen", group: "live-chat-cta" },
+    { id: "wiki:write", label: "Wiki-Inhalte bearbeiten", group: "live-chat-cta" },
   ],
   nav: [
     {
@@ -27,6 +32,15 @@ export default defineExtension({
       group: "support",
       order: 15,
       permission: "live-chat:read",
+    },
+    {
+      id: "wiki-content",
+      label: "Wiki-Inhalte",
+      href: "/wiki-inhalte",
+      icon: "book-open",
+      group: "support",
+      order: 16,
+      permission: "wiki:read",
     },
   ],
   widgets: [
@@ -54,19 +68,26 @@ export default defineExtension({
       entrypoint: "@tracht-digital-solutions/tds-ext-live-chat-cta/pages/Index.astro",
       permission: "live-chat:read",
     },
+    {
+      pattern: "/wiki-inhalte",
+      entrypoint: "@tracht-digital-solutions/tds-ext-live-chat-cta/pages/WikiContent.astro",
+      permission: "wiki:read",
+    },
   ],
   i18n: {
     de: {
       "live-chat.title": "Live-Chat",
       "live-chat.chats": "Chats",
       "live-chat.faq": "FAQ",
-      "live-chat.docs": "Dokumentation",
+      "live-chat.docs": "Handbücher",
+      "wiki-content.title": "Wiki-Inhalte",
     },
     en: {
       "live-chat.title": "Live chat",
       "live-chat.chats": "Chats",
       "live-chat.faq": "FAQ",
-      "live-chat.docs": "Documentation",
+      "live-chat.docs": "Handbooks",
+      "wiki-content.title": "Wiki content",
     },
   },
 });

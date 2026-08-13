@@ -13,6 +13,7 @@ use Tds\Ext\LiveChatCta\Domain\ContactRepository;
 use Tds\Ext\LiveChatCta\Domain\DocRepository;
 use Tds\Ext\LiveChatCta\Domain\FaqRepository;
 use Tds\Frontend\Contract\AbstractModule;
+use Tds\Frontend\Contract\ApiDocSource;
 use Tds\Frontend\Contract\Email;
 use Tds\Frontend\Contract\Mailer;
 use Tds\Frontend\Contract\PermissionDef;
@@ -29,14 +30,18 @@ use Tds\Frontend\Contract\UserContext;
  *     on mount — per-frontend/per-feature enablement + branding + FAQ/docs), a
  *     token-scoped polling chat (`/live-chat-cta/chat*`), and a hardened contact
  *     form (`POST /live-chat-cta/contact`).
- *   - ADMIN (RBAC via {@see UserContext}): the chat inbox, FAQ + documentation
- *     CRUD, and the dashboard summary.
+ *   - PUBLIC help content (`/help/faqs`, `/help/articles*`): the same FAQ and
+ *     handbook rows, read by the CUSTOMER PORTAL'S WIKI. Deliberately not
+ *     behind the widget's per-frontend tab flags — the portal's Wiki must not
+ *     go blank because the chat bubble's FAQ tab was switched off somewhere.
+ *   - ADMIN (RBAC via {@see UserContext}): the chat inbox under `live-chat:*`,
+ *     and the FAQ + handbook CRUD under `wiki:*` (the *Wiki-Inhalte* page).
  *
  * Config is stored in the core {@see SettingsStore} (ns `live-chat-cta`), so the
  * bubble is activated per frontend AND per feature from the admin Einstellungen
  * with no rebuild — a checkbox matrix of {frontend} × {enabled,chat,faq,docs,contact}.
  */
-final class LiveChatCtaModule extends AbstractModule
+final class LiveChatCtaModule extends AbstractModule implements ApiDocSource
 {
     private const NS = 'live-chat-cta';
 
@@ -63,6 +68,12 @@ final class LiveChatCtaModule extends AbstractModule
         return [
             new PermissionDef('live-chat:read', 'Live-Chat ansehen', 'live-chat-cta'),
             new PermissionDef('live-chat:write', 'Live-Chat bearbeiten', 'live-chat-cta'),
+            // Separate from live-chat:* on purpose. The FAQ and handbook rows
+            // are no longer just the chat bubble's content — they ARE the
+            // customer portal's Wiki, so editing them is a publishing right,
+            // not a support-inbox one, and it is granted to different people.
+            new PermissionDef('wiki:read', 'Wiki-Inhalte ansehen', 'live-chat-cta'),
+            new PermissionDef('wiki:write', 'Wiki-Inhalte bearbeiten', 'live-chat-cta'),
         ];
     }
 
@@ -210,6 +221,48 @@ final class LiveChatCtaModule extends AbstractModule
             return self::json($res, ['id' => $id], 201);
         });
 
+        // === PUBLIC: help content for the customer wiki =====================
+        //
+        // The same `live_chat_faq` / `live_chat_doc` rows the widget shows, but
+        // NOT behind the widget's per-frontend tab flags: the customer portal's
+        // Wiki must not go blank because someone switched the chat bubble's FAQ
+        // tab off on a marketing site. Published rows only, read-only, and
+        // unauthenticated like `/live-chat-cta/config` — help text is not
+        // sensitive, and the customer product does not compose this extension's
+        // frontend half, so the wiki page is a BASE page calling in here.
+
+        $app->get('/help/faqs', function (Request $req, Response $res) use ($c): Response {
+            $lang = self::lang($req->getQueryParams()['lang'] ?? null);
+            try {
+                return self::json($res, ['faqs' => $c->get(FaqRepository::class)->published($lang)]);
+            } catch (\Throwable) {
+                // Same fail-safe as the CMS read surface: an empty wiki is a
+                // calm (if unhelpful) page; a 500 is a broken portal.
+                return self::json($res, ['faqs' => []]);
+            }
+        });
+
+        $app->get('/help/articles', function (Request $req, Response $res) use ($c): Response {
+            $lang = self::lang($req->getQueryParams()['lang'] ?? null);
+            try {
+                return self::json($res, ['articles' => $c->get(DocRepository::class)->publishedIndex($lang)]);
+            } catch (\Throwable) {
+                return self::json($res, ['articles' => []]);
+            }
+        });
+
+        $app->get('/help/articles/{slug:[a-z0-9-]+}', function (Request $req, Response $res, array $args) use ($c): Response {
+            $lang = self::lang($req->getQueryParams()['lang'] ?? null);
+            try {
+                $article = $c->get(DocRepository::class)->findPublishedBySlug((string) $args['slug'], $lang);
+            } catch (\Throwable) {
+                $article = null;
+            }
+            return $article === null
+                ? self::json($res, ['error' => 'Not found'], 404)
+                : self::json($res, ['article' => $article]);
+        });
+
         // === ADMIN ==========================================================
 
         // Dashboard widget summary.
@@ -283,14 +336,14 @@ final class LiveChatCtaModule extends AbstractModule
 
         // --- FAQ CRUD ---
         $app->get('/admin/live-chat-cta/faqs', function (Request $req, Response $res) use ($c): Response {
-            if (($deny = self::require($c->get(UserContext::class), 'live-chat:read', $res)) !== null) {
+            if (($deny = self::require($c->get(UserContext::class), 'wiki:read', $res)) !== null) {
                 return $deny;
             }
             return self::json($res, ['faqs' => $c->get(FaqRepository::class)->all()]);
         });
 
         $app->post('/admin/live-chat-cta/faqs', function (Request $req, Response $res) use ($c): Response {
-            if (($deny = self::require($c->get(UserContext::class), 'live-chat:write', $res)) !== null) {
+            if (($deny = self::require($c->get(UserContext::class), 'wiki:write', $res)) !== null) {
                 return $deny;
             }
             $b = (array) $req->getParsedBody();
@@ -311,7 +364,7 @@ final class LiveChatCtaModule extends AbstractModule
         });
 
         $app->put('/admin/live-chat-cta/faqs/{id:[0-9]+}', function (Request $req, Response $res, array $args) use ($c): Response {
-            if (($deny = self::require($c->get(UserContext::class), 'live-chat:write', $res)) !== null) {
+            if (($deny = self::require($c->get(UserContext::class), 'wiki:write', $res)) !== null) {
                 return $deny;
             }
             $b = (array) $req->getParsedBody();
@@ -328,7 +381,7 @@ final class LiveChatCtaModule extends AbstractModule
         });
 
         $app->delete('/admin/live-chat-cta/faqs/{id:[0-9]+}', function (Request $req, Response $res, array $args) use ($c): Response {
-            if (($deny = self::require($c->get(UserContext::class), 'live-chat:write', $res)) !== null) {
+            if (($deny = self::require($c->get(UserContext::class), 'wiki:write', $res)) !== null) {
                 return $deny;
             }
             $ok = $c->get(FaqRepository::class)->delete((int) $args['id']);
@@ -337,14 +390,14 @@ final class LiveChatCtaModule extends AbstractModule
 
         // --- Documentation CRUD ---
         $app->get('/admin/live-chat-cta/docs', function (Request $req, Response $res) use ($c): Response {
-            if (($deny = self::require($c->get(UserContext::class), 'live-chat:read', $res)) !== null) {
+            if (($deny = self::require($c->get(UserContext::class), 'wiki:read', $res)) !== null) {
                 return $deny;
             }
             return self::json($res, ['docs' => $c->get(DocRepository::class)->all()]);
         });
 
         $app->post('/admin/live-chat-cta/docs', function (Request $req, Response $res) use ($c): Response {
-            if (($deny = self::require($c->get(UserContext::class), 'live-chat:write', $res)) !== null) {
+            if (($deny = self::require($c->get(UserContext::class), 'wiki:write', $res)) !== null) {
                 return $deny;
             }
             $b = (array) $req->getParsedBody();
@@ -364,7 +417,7 @@ final class LiveChatCtaModule extends AbstractModule
         });
 
         $app->put('/admin/live-chat-cta/docs/{id:[0-9]+}', function (Request $req, Response $res, array $args) use ($c): Response {
-            if (($deny = self::require($c->get(UserContext::class), 'live-chat:write', $res)) !== null) {
+            if (($deny = self::require($c->get(UserContext::class), 'wiki:write', $res)) !== null) {
                 return $deny;
             }
             $b = (array) $req->getParsedBody();
@@ -382,7 +435,7 @@ final class LiveChatCtaModule extends AbstractModule
         });
 
         $app->delete('/admin/live-chat-cta/docs/{id:[0-9]+}', function (Request $req, Response $res, array $args) use ($c): Response {
-            if (($deny = self::require($c->get(UserContext::class), 'live-chat:write', $res)) !== null) {
+            if (($deny = self::require($c->get(UserContext::class), 'wiki:write', $res)) !== null) {
                 return $deny;
             }
             $ok = $c->get(DocRepository::class)->delete((int) $args['id']);
@@ -520,5 +573,16 @@ final class LiveChatCtaModule extends AbstractModule
     {
         $res->getBody()->write(json_encode($data, JSON_THROW_ON_ERROR));
         return $res->withStatus($status)->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * Route documentation for the admin frontend's API reference. Kept in its
+     * own file so the prose does not sit in the middle of the wiring.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function apiDocs(): array
+    {
+        return require __DIR__ . '/../docs/api.php';
     }
 }
