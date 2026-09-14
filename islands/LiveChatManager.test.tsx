@@ -23,6 +23,7 @@ import { TOAST_EVENT } from "@tracht-digital-solutions/tds-shared/toast";
 interface Reply {
   status: number;
   body: unknown;
+  unreachable?: boolean;
 }
 type Handler = (url: string, init?: RequestInit) => Reply | undefined;
 
@@ -44,6 +45,15 @@ function respond(match: RegExp, body: unknown, status = 200, method?: string) {
     if (!match.test(pathOf(url))) return undefined;
     if (method && (init?.method ?? "GET") !== method) return undefined;
     return { status, body };
+  });
+}
+
+/** A request that never reaches the API: fetch itself rejects, as it does offline. */
+function unreachable(match: RegExp, method?: string) {
+  handlers.unshift((url, init) => {
+    if (!match.test(pathOf(url))) return undefined;
+    if (method && (init?.method ?? "GET") !== method) return undefined;
+    return { status: 0, body: null, unreachable: true };
   });
 }
 
@@ -107,6 +117,7 @@ beforeEach(() => {
       const method = init?.method ?? "GET";
       calls.push({ url, method, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
       const reply = handlers.map((h) => h(url, init)).find((r) => r !== undefined)!;
+      if (reply.unreachable) throw new TypeError("Failed to fetch");
       return { ok: reply.status < 300, status: reply.status, json: async () => reply.body } as Response;
     }),
   );
@@ -235,6 +246,51 @@ describe("the chat inbox", () => {
   it("prompts for a chat until one is opened", async () => {
     await open();
     expect(screen.getByText("Chat auswählen …")).toBeTruthy();
+  });
+});
+
+describe("when the API is unreachable", () => {
+  // fetch rejects offline. Unhandled, the inbox read "Keine Chats.", every poll
+  // of an open thread was an unhandled rejection, and sending or closing ended
+  // without a word.
+  async function openThread() {
+    respond(/sessions(\?|$)/, { sessions: [SESSION] });
+    respond(/^\/admin\/live-chat-cta\/sessions\/3$/, THREAD, 200, "GET");
+    const u = await open();
+    await u.click(await screen.findByRole("button", { name: /Lena Beispiel/ }));
+    await screen.findByText("Hallo, ist jemand da?");
+    return u;
+  }
+
+  it("says so instead of claiming there are no chats", async () => {
+    unreachable(/^\/admin\/live-chat-cta\/sessions(\?|$)/, "GET");
+    await open();
+    expect(await screen.findByText("Chats konnten nicht geladen werden — die API ist nicht erreichbar.")).toBeTruthy();
+  });
+
+  it("marks an open thread as offline instead of failing silently", async () => {
+    respond(/sessions(\?|$)/, { sessions: [SESSION] });
+    unreachable(/^\/admin\/live-chat-cta\/sessions\/3$/, "GET");
+    const u = await open();
+    await u.click(await screen.findByRole("button", { name: /Lena Beispiel/ }));
+    expect(await screen.findByText("Die API ist nicht erreichbar — neue Nachrichten erscheinen, sobald sie wieder antwortet.")).toBeTruthy();
+  });
+
+  it("keeps the draft when the reply never reaches the API", async () => {
+    const u = await openThread();
+    unreachable(/sessions\/3\/reply$/, "POST");
+    await u.type(screen.getByRole("textbox"), "Gleich da!");
+    await u.click(screen.getByRole("button", { name: "Senden" }));
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("nicht erreichbar"))).toBe(true));
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("Gleich da!");
+  });
+
+  it("says so when the status change never reaches the API", async () => {
+    const u = await openThread();
+    unreachable(/^\/admin\/live-chat-cta\/sessions\/3$/, "PATCH");
+    await u.click(screen.getByRole("button", { name: "Schließen" }));
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("nicht erreichbar"))).toBe(true));
+    expect(screen.getByRole("button", { name: "Schließen" })).toBeTruthy();
   });
 });
 

@@ -51,7 +51,14 @@ export default function LiveChatSettings() {
   }, []);
 
   const load = async () => {
-    const res = await api(NS);
+    // apiFetch rejects when the request never reaches the API; uncaught, this
+    // section stayed on its spinner for good.
+    const res = await api(NS).catch(() => null);
+    if (res === null) {
+      setStatus("Einstellungen konnten nicht geladen werden — die API ist nicht erreichbar.");
+      setLoaded(true);
+      return;
+    }
     if (!res.ok) {
       setStatus(res.status === 401 || res.status === 403 ? "Nur für Administratoren." : `Fehler (HTTP ${res.status}).`);
       setLoaded(true);
@@ -91,8 +98,12 @@ export default function LiveChatSettings() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings }),
-    });
+    }).catch(() => null);
     setBusy(false);
+    if (res === null) {
+      toast.danger("Speichern fehlgeschlagen — die API ist nicht erreichbar.");
+      return;
+    }
     if (res.ok) {
       toast.success("Gespeichert.");
       void load();

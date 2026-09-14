@@ -60,10 +60,14 @@ function FaqTab() {
   const [pendingDelete, setPendingDelete] = useState<FaqRow | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await api("/admin/live-chat-cta/faqs");
-    if (res.ok) setRows((await res.json()).faqs ?? []);
+    // apiFetch rejects when the request never reaches the API; uncaught, the
+    // list simply stayed empty and the rejection went unhandled.
+    const res = await api("/admin/live-chat-cta/faqs").catch(() => null);
+    setLoadFailed(res === null);
+    if (res?.ok) setRows((await res.json()).faqs ?? []);
   }, []);
   useEffect(() => {
     void load();
@@ -79,7 +83,12 @@ function FaqTab() {
       method: isEdit ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(draft),
-    });
+    }).catch(() => null);
+    if (res === null) {
+      // The draft stays in the form.
+      toast.danger("Speichern fehlgeschlagen — die API ist nicht erreichbar.");
+      return;
+    }
     if (res.ok) {
       setDraft({ ...emptyFaq });
       setStatus(null);
@@ -98,6 +107,10 @@ function FaqTab() {
       const res = await api(`/admin/live-chat-cta/faqs/${r.id}`, { method: "DELETE" });
       setPendingDelete(null);
       if (res.ok) await load();
+    } catch {
+      // Without this the rejection went unhandled and the dialog stayed open.
+      setPendingDelete(null);
+      toast.danger("Löschen fehlgeschlagen — die API ist nicht erreichbar.");
     } finally {
       setDeleting(false);
     }
@@ -145,6 +158,11 @@ function FaqTab() {
           {typeof draft.id === "number" ? <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...emptyFaq })}>Abbrechen</button> : null}
         </div>
       </form>
+      {loadFailed ? (
+        <p className="tds-alert tds-alert--danger" role="alert">
+          FAQ-Einträge konnten nicht geladen werden — die API ist nicht erreichbar.
+        </p>
+      ) : null}
       <ul className="tds-list">
         {rows.map((r) => (
           <li key={r.id} className="tds-list__row">
@@ -192,9 +210,13 @@ function DocsTab() {
   const [deleting, setDeleting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
+  const [loadFailed, setLoadFailed] = useState(false);
+
   const load = useCallback(async () => {
-    const res = await api("/admin/live-chat-cta/docs");
-    if (res.ok) setRows((await res.json()).docs ?? []);
+    // Same as the FAQ list: uncaught, a lost request looked like "no articles".
+    const res = await api("/admin/live-chat-cta/docs").catch(() => null);
+    setLoadFailed(res === null);
+    if (res?.ok) setRows((await res.json()).docs ?? []);
   }, []);
   useEffect(() => {
     void load();
@@ -210,7 +232,11 @@ function DocsTab() {
       method: isEdit ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(draft),
-    });
+    }).catch(() => null);
+    if (res === null) {
+      toast.danger("Speichern fehlgeschlagen — die API ist nicht erreichbar.");
+      return;
+    }
     if (res.ok) {
       setDraft({ ...emptyDoc });
       setStatus(null);
@@ -228,6 +254,9 @@ function DocsTab() {
       const res = await api(`/admin/live-chat-cta/docs/${r.id}`, { method: "DELETE" });
       setPendingDelete(null);
       if (res.ok) await load();
+    } catch {
+      setPendingDelete(null);
+      toast.danger("Löschen fehlgeschlagen — die API ist nicht erreichbar.");
     } finally {
       setDeleting(false);
     }
@@ -275,6 +304,11 @@ function DocsTab() {
           {typeof draft.id === "number" ? <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...emptyDoc })}>Abbrechen</button> : null}
         </div>
       </form>
+      {loadFailed ? (
+        <p className="tds-alert tds-alert--danger" role="alert">
+          Artikel konnten nicht geladen werden — die API ist nicht erreichbar.
+        </p>
+      ) : null}
       <ul className="tds-list">
         {rows.map((r) => (
           <li key={r.id} className="tds-list__row">

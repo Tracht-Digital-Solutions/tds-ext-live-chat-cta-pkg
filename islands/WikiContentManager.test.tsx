@@ -22,6 +22,7 @@ import { TOAST_EVENT } from "@tracht-digital-solutions/tds-shared/toast";
 interface Reply {
   status: number;
   body: unknown;
+  unreachable?: boolean;
 }
 type Handler = (url: string, init?: RequestInit) => Reply | undefined;
 
@@ -43,6 +44,15 @@ function respond(match: RegExp, body: unknown, status = 200, method?: string) {
     if (!match.test(pathOf(url))) return undefined;
     if (method && (init?.method ?? "GET") !== method) return undefined;
     return { status, body };
+  });
+}
+
+/** A request that never reaches the API: fetch itself rejects, as it does offline. */
+function unreachable(match: RegExp, method?: string) {
+  handlers.unshift((url, init) => {
+    if (!match.test(pathOf(url))) return undefined;
+    if (method && (init?.method ?? "GET") !== method) return undefined;
+    return { status: 0, body: null, unreachable: true };
   });
 }
 
@@ -106,6 +116,7 @@ beforeEach(() => {
       const method = init?.method ?? "GET";
       calls.push({ url, method, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
       const reply = handlers.map((h) => h(url, init)).find((r) => r !== undefined)!;
+      if (reply.unreachable) throw new TypeError("Failed to fetch");
       return { ok: reply.status < 300, status: reply.status, json: async () => reply.body } as Response;
     }),
   );
@@ -347,6 +358,31 @@ describe("the FAQ editor", () => {
     await waitFor(() => expect(sent("POST", /faqs$/)).toHaveLength(1));
     expect((sent("POST", /faqs$/)[0]!.body as { lang: string }).lang).toBe("en");
   });
+
+  it("says so instead of an empty list when the API is unreachable", async () => {
+    // fetch rejects offline; unhandled, a lost request looked like "no FAQs".
+    unreachable(/^\/admin\/live-chat-cta\/faqs$/, "GET");
+    await open("FAQ");
+    expect(await screen.findByText("FAQ-Einträge konnten nicht geladen werden — die API ist nicht erreichbar.")).toBeTruthy();
+  });
+
+  it("KEEPS the form filled when the save never reaches the API", async () => {
+    unreachable(/faqs$/, "POST");
+    const u = await openFaq();
+    await u.type(field("Frage"), "Was kostet das?");
+    await u.type(field("Antwort"), "Es kommt darauf an.");
+    await u.click(screen.getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("nicht erreichbar"))).toBe(true));
+    expect((field("Frage") as HTMLInputElement).value).toBe("Was kostet das?");
+  });
+
+  it("says so when the delete never reaches the API", async () => {
+    const u = await openFaq([FAQ]);
+    unreachable(/faqs\/11$/, "DELETE");
+    await u.click(await screen.findByRole("button", { name: "Löschen" }));
+    await u.click(screen.getAllByRole("button", { name: /Löschen/ }).at(-1)!);
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("nicht erreichbar"))).toBe(true));
+  });
 });
 
 describe("the documentation editor", () => {
@@ -449,5 +485,28 @@ describe("the documentation editor", () => {
     await open("Handbücher");
     await screen.findByRole("heading", { name: "Neuer Artikel" });
     expect(screen.queryByText("Erste Schritte")).toBeNull();
+  });
+
+  it("says so instead of an empty list when the API is unreachable", async () => {
+    unreachable(/^\/admin\/live-chat-cta\/docs$/, "GET");
+    await open("Handbücher");
+    expect(await screen.findByText("Artikel konnten nicht geladen werden — die API ist nicht erreichbar.")).toBeTruthy();
+  });
+
+  it("keeps the article in the form when the save never reaches the API", async () => {
+    unreachable(/docs$/, "POST");
+    const u = await openDocs();
+    await u.type(field("Titel"), "Erste Schritte");
+    await u.click(screen.getByRole("button", { name: "Speichern" }));
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("nicht erreichbar"))).toBe(true));
+    expect((field("Titel") as HTMLInputElement).value).toBe("Erste Schritte");
+  });
+
+  it("says so when the delete never reaches the API", async () => {
+    const u = await openDocs([DOC]);
+    unreachable(/docs\/21$/, "DELETE");
+    await u.click(await screen.findByRole("button", { name: "Löschen" }));
+    await u.click(screen.getAllByRole("button", { name: /Löschen/ }).at(-1)!);
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("nicht erreichbar"))).toBe(true));
   });
 });

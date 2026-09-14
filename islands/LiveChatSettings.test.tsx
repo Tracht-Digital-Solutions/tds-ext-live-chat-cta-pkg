@@ -31,6 +31,8 @@ import { TOAST_EVENT } from "@tracht-digital-solutions/tds-shared/toast";
 let calls: Array<{ url: string; method: string; body: unknown }> = [];
 let getReply: { status: number; body: unknown } = { status: 200, body: { settings: [] } };
 let putReply: { status: number; body: unknown } = { status: 200, body: {} };
+/** Methods whose request never reaches the API: fetch itself rejects, as it does offline. */
+let unreachableMethods: string[] = [];
 
 const NS = "/admin/settings/live-chat-cta";
 const FRONTENDS = ["landingpage", "blog", "customer", "admin", "tools"];
@@ -56,11 +58,13 @@ beforeEach(() => {
   calls = [];
   getReply = { status: 200, body: { settings: [] } };
   putReply = { status: 200, body: {} };
+  unreachableMethods = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string, init?: RequestInit) => {
       const method = init?.method ?? "GET";
       calls.push({ url, method, body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
+      if (unreachableMethods.includes(method)) throw new TypeError("Failed to fetch");
       const reply = method === "PUT" ? putReply : getReply;
       return { ok: reply.status < 300, status: reply.status, json: async () => reply.body } as Response;
     }),
@@ -240,6 +244,13 @@ describe("loading", () => {
     await open();
     expect(box("Landingpage aktiv")).toBeTruthy();
   });
+
+  it("says so instead of loading forever when the API is unreachable", async () => {
+    // fetch rejects offline; unhandled, the section stayed on its spinner.
+    unreachableMethods = ["GET"];
+    render(<LiveChatSettings />);
+    expect(await screen.findByText("Einstellungen konnten nicht geladen werden — die API ist nicht erreichbar.")).toBeTruthy();
+  });
 });
 
 describe("saving", () => {
@@ -358,6 +369,17 @@ describe("saving", () => {
     const button = screen.getByRole("button", { name: "Speichern" }) as HTMLButtonElement;
     await u.click(button);
     await waitFor(() => expect(toasts.some((t) => t.variant === "success" && t.message.includes("Gespeichert"))).toBe(true));
+    expect(button.disabled).toBe(false);
+  });
+
+  it("keeps the toggles and frees the button when the save never reaches the API", async () => {
+    const u = await open();
+    unreachableMethods = ["PUT"];
+    await u.click(box("Landingpage aktiv"));
+    const button = screen.getByRole("button", { name: "Speichern" }) as HTMLButtonElement;
+    await u.click(button);
+    await waitFor(() => expect(toasts.some((t) => t.variant === "danger" && t.message.includes("nicht erreichbar"))).toBe(true));
+    expect(box("Landingpage aktiv").checked).toBe(true);
     expect(button.disabled).toBe(false);
   });
 });

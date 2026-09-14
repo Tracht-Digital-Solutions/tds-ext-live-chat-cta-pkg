@@ -48,10 +48,14 @@ function ChatsTab() {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [filter, setFilter] = useState<"open" | "closed" | "">("open");
   const [selected, setSelected] = useState<number | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const loadSessions = useCallback(async () => {
-    const res = await api(`/admin/live-chat-cta/sessions${filter ? `?status=${filter}` : ""}`);
-    if (res.ok) setSessions((await res.json()).sessions ?? []);
+    // apiFetch rejects when the request never reaches the API; uncaught, the
+    // list read "Keine Chats." and the rejection went unhandled.
+    const res = await api(`/admin/live-chat-cta/sessions${filter ? `?status=${filter}` : ""}`).catch(() => null);
+    setLoadFailed(res === null);
+    if (res?.ok) setSessions((await res.json()).sessions ?? []);
   }, [filter]);
 
   useEffect(() => {
@@ -78,6 +82,11 @@ function ChatsTab() {
             </button>
           ))}
         </div>
+        {loadFailed ? (
+          <p className="tds-alert tds-alert--danger" role="alert">
+            Chats konnten nicht geladen werden — die API ist nicht erreichbar.
+          </p>
+        ) : null}
         {sessions.length === 0 ? (
           <p className="marginalia">Keine Chats.</p>
         ) : (
@@ -112,11 +121,15 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
   const [status, setStatus] = useState<"open" | "closed">("open");
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
+  const [offline, setOffline] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
-    const res = await api(`/admin/live-chat-cta/sessions/${sessionId}`);
-    if (res.ok) {
+    // Polled every few seconds, so a lost connection is a state to show, not a
+    // toast per poll. Uncaught, every poll was an unhandled rejection.
+    const res = await api(`/admin/live-chat-cta/sessions/${sessionId}`).catch(() => null);
+    setOffline(res === null);
+    if (res?.ok) {
       const d = await res.json();
       setMessages(d.messages ?? []);
       setStatus(d.status ?? "open");
@@ -141,8 +154,13 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ body }),
-    });
+    }).catch(() => null);
     setBusy(false);
+    if (res === null) {
+      // The draft stays in the box; the visitor has not received it.
+      toast.danger("Antwort konnte nicht gesendet werden — die API ist nicht erreichbar.");
+      return;
+    }
     if (res.ok) {
       setReply("");
       await load();
@@ -159,7 +177,11 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: next }),
-    });
+    }).catch(() => null);
+    if (res === null) {
+      toast.danger("Status konnte nicht geändert werden — die API ist nicht erreichbar.");
+      return;
+    }
     if (res.ok) {
       setStatus(next);
       onChanged();
@@ -177,6 +199,11 @@ function ChatThread({ sessionId, onChanged }: { sessionId: number; onChanged: ()
         </span>
         <button className="btn btn-ghost" type="button" onClick={toggleStatus}>{status === "open" ? "Schließen" : "Wieder öffnen"}</button>
       </div>
+      {offline ? (
+        <p className="tds-alert tds-alert--warning" role="status">
+          Die API ist nicht erreichbar — neue Nachrichten erscheinen, sobald sie wieder antwortet.
+        </p>
+      ) : null}
       {/* Shared thread primitive. Sides mapped EXPLICITLY — `msg msg--${author}`
           matched no rule anywhere, so the bubbles rendered unstyled. This is the
           AGENT-side view (the admin panel), so the agent is `--own`. */}
