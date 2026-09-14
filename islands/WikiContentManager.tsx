@@ -119,7 +119,8 @@ function FaqTab() {
   return (
     <div className="kb">
       <form className="tds-stack" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-        <h3>{typeof draft.id === "number" ? "FAQ bearbeiten" : "Neue FAQ"}</h3>
+        {/* h2: directly under the page's h1 "Wiki-Inhalte". */}
+        <h2>{typeof draft.id === "number" ? "FAQ bearbeiten" : "Neue FAQ"}</h2>
         <div className="grid">
           <label>
             <span>Sprache</span>
@@ -265,7 +266,7 @@ function DocsTab() {
   return (
     <div className="kb">
       <form className="tds-stack" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-        <h3>{typeof draft.id === "number" ? "Artikel bearbeiten" : "Neuer Artikel"}</h3>
+        <h2>{typeof draft.id === "number" ? "Artikel bearbeiten" : "Neuer Artikel"}</h2>
         <div className="grid">
           <label>
             <span>Sprache</span>
