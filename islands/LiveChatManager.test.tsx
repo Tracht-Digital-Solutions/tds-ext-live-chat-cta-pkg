@@ -1,8 +1,21 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { MotionGlobalConfig } from "motion/react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LiveChatManager from "./LiveChatManager";
+
+// The thread pane cross-fades (tds-shared Presence, mode="wait"): the new
+// pane only mounts once the old one's exit has run, and Motion clocks that
+// with performance.now(), which fake timers do not advance. These tests are
+// about the poll, so let the animations complete instantly here; the motion
+// itself is verified in a browser.
+beforeAll(() => {
+  MotionGlobalConfig.skipAnimations = true;
+});
+afterAll(() => {
+  MotionGlobalConfig.skipAnimations = false;
+});
 import { TOAST_EVENT } from "@tracht-digital-solutions/tds-shared/toast";
 
 /**
@@ -503,6 +516,9 @@ describe("the live poll", () => {
     const { unmount } = render(<LiveChatManager />);
     await tick();
     fireEvent.click(screen.getByRole("button", { name: /Lena Beispiel/ }));
+    // Let the pane mount (it cross-fades in) before advancing the clock —
+    // otherwise the poll's first interval starts after the 4s have passed.
+    await tick();
     await tick(4000);
     const before = sent("GET", /sessions\/3$/).length;
     expect(before).toBeGreaterThan(1);

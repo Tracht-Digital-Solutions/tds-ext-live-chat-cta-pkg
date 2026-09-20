@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog, toast } from "@tracht-digital-solutions/tds-shared/components";
 import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
+import {
+  AnimatedItem,
+  AnimatedList,
+  TabIndicator,
+} from "@tracht-digital-solutions/tds-shared/motion/react";
 
 /**
  * Admin editor for the WIKI CONTENT: the FAQs and handbook articles the
@@ -35,8 +40,9 @@ export default function WikiContentManager() {
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" role="tab" aria-selected={active} className={active ? "chip chip-active" : "chip"} onClick={onClick}>
+    <button type="button" role="tab" aria-selected={active} className={active ? "chip tds-tab chip-active" : "chip tds-tab"} onClick={onClick}>
       {children}
+      {active ? <TabIndicator group="wiki-content" /> : null}
     </button>
   );
 }
@@ -164,9 +170,9 @@ function FaqTab() {
           FAQ-Einträge konnten nicht geladen werden — die API ist nicht erreichbar.
         </p>
       ) : null}
-      <ul className="tds-list">
+      <AnimatedList className="tds-list">
         {rows.map((r) => (
-          <li key={r.id} className="tds-list__row">
+          <AnimatedItem key={r.id} className="tds-list__row">
             <div>
               <strong>{r.question}</strong>
               <span className="marginalia">{r.lang}{r.category ? ` · ${r.category}` : ""}{r.is_published ? "" : " · Entwurf"}</span>
@@ -175,9 +181,9 @@ function FaqTab() {
               <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...r, category: r.category ?? "" })}>Bearbeiten</button>
               <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(r)}>Löschen</button>
             </div>
-          </li>
+          </AnimatedItem>
         ))}
-      </ul>
+      </AnimatedList>
 
       <ConfirmDialog
         open={pendingDelete !== null}
@@ -310,9 +316,9 @@ function DocsTab() {
           Artikel konnten nicht geladen werden — die API ist nicht erreichbar.
         </p>
       ) : null}
-      <ul className="tds-list">
+      <AnimatedList className="tds-list">
         {rows.map((r) => (
-          <li key={r.id} className="tds-list__row">
+          <AnimatedItem key={r.id} className="tds-list__row">
             <div>
               <strong>{r.title}</strong>
               <span className="marginalia">{r.lang} · {r.slug}{r.is_published ? "" : " · Entwurf"}</span>
@@ -321,9 +327,9 @@ function DocsTab() {
               <button className="btn btn-ghost" type="button" onClick={() => setDraft({ ...r })}>Bearbeiten</button>
               <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(r)}>Löschen</button>
             </div>
-          </li>
+          </AnimatedItem>
         ))}
-      </ul>
+      </AnimatedList>
 
       <ConfirmDialog
         open={pendingDelete !== null}

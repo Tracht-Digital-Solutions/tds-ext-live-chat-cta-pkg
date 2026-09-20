@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "@tracht-digital-solutions/tds-shared/components";
 import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
+import {
+  AnimatedItem,
+  AnimatedList,
+  Presence,
+} from "@tracht-digital-solutions/tds-shared/motion/react";
 
 /**
  * Admin surface for the Live-Chat-CTA: the visitor-session inbox (list + thread
@@ -90,9 +95,9 @@ function ChatsTab() {
         {sessions.length === 0 ? (
           <p className="marginalia">Keine Chats.</p>
         ) : (
-          <ul>
+          <AnimatedList>
             {sessions.map((s) => (
-              <li key={s.id}>
+              <AnimatedItem key={s.id}>
                 <button type="button" className={selected === s.id ? "btn btn-ghost tds-row is-active" : "btn btn-ghost tds-row"} onClick={() => setSelected(s.id)}>
                   <strong>{s.visitor_name || s.visitor_email || `Besucher #${s.id}`}</strong>
                   <span className="marginalia">
@@ -100,17 +105,19 @@ function ChatsTab() {
                   </span>
                   {s.status === "open" ? <span className="chip chip--info">offen</span> : null}
                 </button>
-              </li>
+              </AnimatedItem>
             ))}
-          </ul>
+          </AnimatedList>
         )}
       </div>
       <div className="tds-stack min-w-0 md:col-span-2">
-        {selected === null ? (
-          <p className="marginalia">Chat auswählen …</p>
-        ) : (
-          <ChatThread sessionId={selected} onChanged={loadSessions} />
-        )}
+        <Presence view={selected ?? "none"}>
+          {selected === null ? (
+            <p className="marginalia">Chat auswählen …</p>
+          ) : (
+            <ChatThread sessionId={selected} onChanged={loadSessions} />
+          )}
+        </Presence>
       </div>
     </div>
   );

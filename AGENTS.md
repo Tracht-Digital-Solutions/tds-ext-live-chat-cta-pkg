@@ -21,6 +21,16 @@ worked references.
 - `php/src/LiveChatCtaModule.php` + `php/src/Domain/*Repository.php` — the backend Module.
 - `php/db/migrations/20260801*` — Phinx, classes prefixed `LiveChatCta*`.
 
+## Motion (tds-shared >= 0.38.7)
+
+Die Chat-Liste und die Wiki-Listen (FAQ, Artikel) sind `AnimatedList`s, der
+Thread-Bereich blendet je Chat ueber (`Presence`), die Wiki-Tabs tragen einen
+`TabIndicator`. **Fake-Timer-Tests brauchen `MotionGlobalConfig.skipAnimations
+= true`**: `Presence` im Modus `wait` haengt sonst, weil Motion mit
+`performance.now()` misst und Fake-Timer diese Uhr nicht bewegen. Und nach
+einem Klick erst einen `tick()` geben, damit der neue Bereich haengt, bevor
+die Uhr vorgespult wird.
+
 ## Conventions baked in (don't regress)
 
 - **Call the API with `apiFetch` from `@tracht-digital-solutions/tds-shared/api`,
