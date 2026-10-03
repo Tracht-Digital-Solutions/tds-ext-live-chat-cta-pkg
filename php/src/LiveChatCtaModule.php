@@ -20,6 +20,7 @@ use Tds\Frontend\Contract\PermissionDef;
 use Tds\Frontend\Contract\SettingDef;
 use Tds\Frontend\Contract\SettingsStore;
 use Tds\Frontend\Contract\UserContext;
+use Tds\Frontend\Contract\ModuleHttp;
 
 /**
  * Backend Module for the Live-Chat-CTA — the floating bottom-right support widget.
@@ -43,6 +44,8 @@ use Tds\Frontend\Contract\UserContext;
  */
 final class LiveChatCtaModule extends AbstractModule implements ApiDocSource
 {
+    use ModuleHttp;
+
     private const NS = 'live-chat-cta';
 
     /** Known frontends the bubble can be activated on (drives the settings matrix). */
@@ -561,23 +564,6 @@ final class LiveChatCtaModule extends AbstractModule implements ApiDocSource
         }
         $salt = (string) (getenv('LIVE_CHAT_RATE_SALT') ?: getenv('SETTINGS_ENCRYPTION_KEY') ?: 'tds-live-chat');
         return hash('sha256', $salt . '|' . $ip);
-    }
-
-    private static function require(UserContext $user, string $permission, Response $res): ?Response
-    {
-        if (!$user->isAuthenticated()) {
-            return self::json($res, ['error' => 'Unauthorized'], 401);
-        }
-        if (!$user->has($permission)) {
-            return self::json($res, ['error' => 'Forbidden'], 403);
-        }
-        return null;
-    }
-
-    private static function json(Response $res, mixed $data, int $status = 200): Response
-    {
-        $res->getBody()->write(json_encode($data, JSON_THROW_ON_ERROR));
-        return $res->withStatus($status)->withHeader('Content-Type', 'application/json');
     }
 
     /**
