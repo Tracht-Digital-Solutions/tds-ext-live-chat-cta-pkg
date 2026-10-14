@@ -91,3 +91,14 @@ add nothing the second time and must not touch the edit, and the rollback must l
 Semver; bump `package.json` **and** `composer.json` in lockstep (the release workflow does
 this). Extensions stay in the `0.1.x` line (host caret pin). npm → GitHub Packages; the
 Composer half is consumed via the git tag the release pushes.
+
+## Lizenz / License
+
+**Öffentlich einsehbar, alle Rechte vorbehalten.** Der Code kann gelesen und
+zur Beurteilung der Programmierkenntnisse betrachtet werden. Es besteht keine
+allgemeine Erlaubnis zum Kopieren, Verändern oder kommerziellen Weiterverwenden.
+Die vollständigen Bedingungen und Ausnahmen stehen in [LICENSE](LICENSE).
+
+**Publicly viewable, all rights reserved.** Public access permits inspection of
+the code, but grants no general permission to copy, modify or commercially reuse
+it. See [LICENSE](LICENSE) for the complete terms and exceptions.
